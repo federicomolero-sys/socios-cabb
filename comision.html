@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Comisión CABB</title>
+  <meta name="theme-color" content="#22313f">
+  <meta name="robots" content="noindex">
+  <link rel="manifest" href="comision.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+  <link rel="apple-touch-icon" href="comision-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Comisión CABB">
+  <style>
+    :root {
+      --azul: #22313f; --azul2: #34495e; --verde: #1f3d2b; --crema: #f4f2ed; --papel: #ffffff;
+      --tinta: #1d1d1b; --gris: #6b6b66; --linea: #e3e0d8; --ok: #2e7d4f; --mal: #b3261e; --aviso: #a86b00; --oro: #c9a85a;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; background: var(--crema); color: var(--tinta); font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+    .oculto { display: none !important; }
+    .wrap { max-width: 640px; margin: 0 auto; padding: calc(14px + env(safe-area-inset-top)) 14px calc(96px + env(safe-area-inset-bottom)); }
+    header.top { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    header.top .pieza { font-size: 26px; color: var(--azul); }
+    header.top h1 { font-size: 16px; margin: 0; color: var(--azul); }
+    header.top small { display: block; font-weight: 400; color: var(--gris); font-size: 12px; }
+    header.top .quien { margin-left: auto; font-size: 12px; color: var(--gris); text-align: right; }
+    h2 { font-size: 18px; margin: 4px 0 12px; }
+    h3 { font-size: 15px; margin: 0 0 10px; }
+    .card { background: var(--papel); border: 1px solid var(--linea); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
+    label { display: block; font-size: 13px; color: var(--gris); margin: 10px 0 4px; }
+    input, select, textarea { width: 100%; padding: 11px; font-size: 16px; border: 1px solid var(--linea); border-radius: 10px; background: #fff; font-family: inherit; color: var(--tinta); }
+    input:focus, select:focus, textarea:focus { outline: 2px solid var(--azul2); border-color: transparent; }
+    button { font: inherit; cursor: pointer; }
+    .btn { display: block; width: 100%; padding: 12px; margin-top: 14px; border: 0; border-radius: 10px; background: var(--azul); color: #fff; font-weight: 600; font-size: 15px; text-align: center; text-decoration: none; }
+    .btn.verde { background: var(--ok); }
+    .btn.sec { background: #fff; color: var(--azul); border: 1px solid var(--azul); }
+    .btn.peligro { background: #fff; color: var(--mal); border: 1px solid var(--mal); }
+    .btn:disabled { opacity: .55; }
+    .fila2 { display: flex; gap: 8px; } .fila2 > * { flex: 1; }
+    .error { color: var(--mal); font-size: 14px; margin-top: 10px; min-height: 1em; }
+    .ok { color: var(--ok); font-size: 14px; margin-top: 10px; }
+    .muted { color: var(--gris); font-size: 13px; }
+
+    /* Tablero */
+    .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .kpi { background: var(--papel); border: 1px solid var(--linea); border-radius: 14px; padding: 14px; }
+    .kpi .v { font-size: 26px; font-weight: 700; margin-top: 4px; }
+    .kpi .l { font-size: 12px; color: var(--gris); text-transform: uppercase; letter-spacing: .04em; }
+    .kpi.ok .v { color: var(--ok); } .kpi.mal .v { color: var(--mal); }
+    .barras { display: flex; align-items: flex-end; gap: 8px; height: 140px; margin-top: 8px; }
+    .barra { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+    .barra .b { width: 100%; background: var(--azul2); border-radius: 6px 6px 0 0; min-height: 3px; }
+    .barra:last-child .b { background: var(--oro); }
+    .barra .m { font-size: 11px; color: var(--gris); margin-top: 4px; }
+    .barra .t { font-size: 10px; color: var(--gris); margin-bottom: 3px; white-space: nowrap; }
+    .medios { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .medios span { background: var(--crema); border-radius: 8px; padding: 6px 10px; font-size: 13px; }
+    .alerta { display: flex; align-items: center; gap: 10px; background: #fff6e0; border: 1px solid #f0d58a; border-radius: 12px; padding: 12px; margin-bottom: 12px; cursor: pointer; }
+
+    /* Lista de socios */
+    .buscador { position: sticky; top: 0; background: var(--crema); padding: 4px 0 8px; z-index: 2; }
+    .chips { display: flex; gap: 6px; overflow-x: auto; padding: 8px 0 2px; }
+    .chip { border: 1px solid var(--linea); background: #fff; border-radius: 999px; padding: 6px 12px; font-size: 13px; white-space: nowrap; }
+    .chip.on { background: var(--azul); border-color: var(--azul); color: #fff; }
+    .socio { display: flex; align-items: center; gap: 12px; background: var(--papel); border: 1px solid var(--linea); border-radius: 12px; padding: 12px; margin-bottom: 8px; cursor: pointer; }
+    .socio .av { width: 40px; height: 40px; border-radius: 50%; background: var(--crema); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--azul); flex: none; }
+    .socio .info { flex: 1; min-width: 0; }
+    .socio .n { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .socio .d { font-size: 12px; color: var(--gris); }
+    .estado { font-size: 12px; font-weight: 700; padding: 4px 8px; border-radius: 999px; white-space: nowrap; }
+    .estado.ok { background: #dcefe3; color: var(--ok); }
+    .estado.mal { background: #fbe0de; color: var(--mal); }
+    .estado.gris { background: #eee; color: #555; }
+    .estado.pend { background: #fff1d6; color: var(--aviso); }
+
+    /* Ficha */
+    .ficha-top { background: linear-gradient(140deg, var(--azul), var(--azul2)); color: #fff; border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+    .ficha-top .n { font-size: 22px; font-weight: 700; }
+    .ficha-top .d { font-size: 13px; opacity: .85; margin-top: 2px; }
+    .ficha-top .acc { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .ficha-top .acc a, .ficha-top .acc button { background: rgba(255,255,255,.14); color: #fff; border: 0; border-radius: 8px; padding: 8px 12px; font-size: 13px; text-decoration: none; }
+    .volver { background: none; border: 0; color: var(--azul); font-size: 15px; padding: 6px 0 10px; }
+    .cuota { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--linea); font-size: 14px; }
+    .cuota:first-child { border-top: 0; }
+    .cuota input[type=checkbox] { width: 22px; height: 22px; flex: none; }
+    .cuota .info { flex: 1; }
+    .cuota .det { font-size: 12px; color: var(--gris); }
+    .cuota .m { font-weight: 600; text-align: right; }
+    .mini { background: none; border: 0; color: var(--mal); font-size: 12px; text-decoration: underline; padding: 2px 0; }
+    .aviso { background: #fff6e0; border: 1px solid #f0d58a; border-radius: 10px; padding: 10px; font-size: 13px; margin-bottom: 8px; }
+    .aviso .acc { display: flex; gap: 8px; margin-top: 8px; }
+    .aviso .acc button { flex: 1; border-radius: 8px; padding: 8px; border: 1px solid var(--azul); background: #fff; color: var(--azul); font-size: 13px; }
+    .aviso .acc button.si { background: var(--azul); color: #fff; }
+    .total { text-align: right; margin-top: 8px; font-size: 15px; }
+    .adel { display: flex; gap: 6px; margin-top: 6px; align-items: center; }
+    .adel button { border: 0; background: none; color: var(--mal); font-size: 18px; }
+    .link { background: none; border: 0; color: var(--azul2); text-decoration: underline; font-size: 14px; padding: 4px 0; }
+
+    /* Escáner */
+    .visor { position: relative; background: #000; border-radius: 16px; overflow: hidden; aspect-ratio: 1; }
+    .visor video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .visor .marco { position: absolute; inset: 18%; border: 3px solid rgba(255,255,255,.9); border-radius: 16px; box-shadow: 0 0 0 999px rgba(0,0,0,.35); }
+
+    /* Navegación inferior */
+    nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid var(--linea); display: flex; justify-content: space-around; padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); z-index: 10; }
+    nav.tabs button { flex: 1; background: none; border: 0; color: var(--gris); font-size: 11px; padding: 4px 0; display: flex; flex-direction: column; align-items: center; gap: 2px; position: relative; }
+    nav.tabs button .i { font-size: 21px; line-height: 1.1; }
+    nav.tabs button.on { color: var(--azul); font-weight: 700; }
+    nav.tabs .badge { position: absolute; top: 0; right: 22%; background: var(--mal); color: #fff; border-radius: 999px; font-size: 10px; padding: 1px 5px; }
+
+    /* Modal */
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: flex-end; justify-content: center; z-index: 20; }
+    .modal .caja { background: #fff; width: 100%; max-width: 520px; border-radius: 18px 18px 0 0; padding: 20px 18px calc(20px + env(safe-area-inset-bottom)); }
+    .modal .caja p { margin: 0 0 6px; }
+    .clave { font-family: monospace; font-size: 26px; font-weight: 700; letter-spacing: 3px; background: var(--crema); padding: 10px; border-radius: 10px; text-align: center; margin: 10px 0; }
+    .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(80px + env(safe-area-inset-bottom)); background: var(--tinta); color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 14px; z-index: 30; max-width: 90%; }
+    .cargando { text-align: center; color: var(--gris); padding: 40px 0; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="pieza">♜</div>
+    <h1>Comisión directiva<small id="hClub">Círculo de Ajedrez de Bahía Blanca</small></h1>
+    <div class="quien oculto" id="hQuien"></div>
+  </header>
+
+  <!-- Ingreso -->
+  <section id="vLogin" class="oculto">
+    <div class="card">
+      <h3>Ingreso de la comisión</h3>
+      <form id="fLogin" autocomplete="on">
+        <label for="lUsuario">Usuario</label>
+        <input id="lUsuario" name="username" autocomplete="username" autocapitalize="none" required>
+        <label for="lClave">Clave</label>
+        <input id="lClave" name="password" type="password" autocomplete="current-password" autocapitalize="characters" required>
+        <button class="btn" id="bLogin" type="submit">Entrar</button>
+        <div class="error" id="eLogin"></div>
+      </form>
+      <p class="muted">El usuario y la clave se generan desde la planilla: <i>Socios → Agregar integrante de la comisión</i>.</p>
+    </div>
+  </section>
+
+  <section id="vCargando" class="cargando">Cargando…</section>
+
+  <!-- Inicio -->
+  <section id="vInicio" class="oculto">
+    <div id="tAvisos" class="alerta oculto"><span style="font-size:22px">📩</span><div><b id="tAvisosN"></b><div class="muted">Tocá para revisarlos</div></div></div>
+    <div class="kpis">
+      <div class="kpi"><div class="l">Socios activos</div><div class="v" id="kActivos">–</div></div>
+      <div class="kpi ok"><div class="l">Al día</div><div class="v" id="kAlDia">–</div></div>
+      <div class="kpi mal"><div class="l">Con deuda</div><div class="v" id="kMorosos">–</div></div>
+      <div class="kpi mal"><div class="l">Deuda vencida</div><div class="v" id="kDeuda" style="font-size:20px">–</div></div>
+    </div>
+    <div class="card">
+      <h3>Recaudado en <span id="kMes"></span>: <span id="kRec"></span></h3>
+      <div class="medios" id="kMedios"></div>
+    </div>
+    <div class="card">
+      <h3>Últimos 6 meses</h3>
+      <div class="barras" id="kBarras"></div>
+    </div>
+    <button class="btn sec" id="bRefrescar" type="button">Actualizar</button>
+  </section>
+
+  <!-- Socios -->
+  <section id="vSocios" class="oculto">
+    <div class="buscador">
+      <div class="fila2" style="align-items:center">
+        <input id="sBuscar" type="search" placeholder="Buscar por apellido, nombre, Nº o DNI" autocomplete="off">
+        <button class="btn" id="bNuevo" type="button" style="flex:0 0 auto;width:auto;margin:0;padding:11px 14px">＋</button>
+      </div>
+      <div class="chips" id="sChips">
+        <button class="chip on" data-f="todos">Todos</button>
+        <button class="chip" data-f="deuda">Con deuda</button>
+        <button class="chip" data-f="aldia">Al día</button>
+        <button class="chip" data-f="inactivos">Suspendidos / baja</button>
+      </div>
+    </div>
+    <div class="muted" id="sCuenta" style="margin:4px 0 8px"></div>
+    <div id="sLista"></div>
+  </section>
+
+  <!-- Ficha -->
+  <section id="vFicha" class="oculto">
+    <button class="volver" id="bVolver" type="button">‹ Volver</button>
+    <div class="ficha-top">
+      <div class="n" id="fNombre"></div>
+      <div class="d" id="fDatos"></div>
+      <div style="margin-top:10px"><span class="estado" id="fEstado"></span></div>
+      <div class="acc" id="fContacto"></div>
+    </div>
+    <div id="fAvisos"></div>
+
+    <div class="card">
+      <h3>Registrar pago</h3>
+      <div id="fPendientes"></div>
+      <div id="fAdelantos"></div>
+      <button class="link" id="bAdelanto" type="button">＋ Cobrar un mes por adelantado</button>
+      <div class="fila2">
+        <div><label>Medio</label><select id="fMedio"><option>Efectivo</option><option>Transferencia</option><option>Mercado Pago</option></select></div>
+        <div><label>Fecha</label><input id="fFecha" type="date"></div>
+      </div>
+      <label>Observaciones (opcional)</label>
+      <input id="fObs" placeholder="Nº de operación, recibo…">
+      <div class="total" id="fTotal"></div>
+      <button class="btn verde" id="bPagar" type="button">Registrar pago</button>
+      <div class="error" id="ePago"></div>
+    </div>
+
+    <div class="card">
+      <h3>Historial de cuotas</h3>
+      <div id="fHistorial"></div>
+    </div>
+
+    <div class="card">
+      <details id="fEditarDet">
+        <summary style="font-weight:600;cursor:pointer">Editar datos</summary>
+        <div class="fila2">
+          <div><label>Apellido</label><input id="eApellido"></div>
+          <div><label>Nombre</label><input id="eNombre"></div>
+        </div>
+        <label>Mail</label><input id="eEmail" type="email">
+        <label>Teléfono / WhatsApp</label><input id="eTelefono" inputmode="tel">
+        <div class="fila2">
+          <div><label>Categoría</label><select id="eCategoria"></select></div>
+          <div><label>Estado</label><select id="eEstado"><option>Activo</option><option>Suspendido</option><option>Baja</option></select></div>
+        </div>
+        <label>Observaciones</label><textarea id="eObs" rows="2"></textarea>
+        <button class="btn" id="bGuardar" type="button">Guardar cambios</button>
+        <div class="error" id="eEditar"></div>
+      </details>
+    </div>
+    <button class="btn sec" id="bNuevaClave" type="button">Generar clave nueva para el portal</button>
+  </section>
+
+  <!-- Escanear -->
+  <section id="vEscanear" class="oculto">
+    <h2>Escanear carnet</h2>
+    <div class="visor"><video id="video" playsinline muted></video><div class="marco"></div></div>
+    <p class="muted" id="escMsg" style="text-align:center">Apuntá la cámara al QR del carnet del socio.</p>
+    <canvas id="escCanvas" class="oculto"></canvas>
+  </section>
+
+  <!-- Avisos -->
+  <section id="vAvisos" class="oculto">
+    <h2>Avisos de pago</h2>
+    <p class="muted">Socios que avisaron desde la app que ya pagaron. Controlá que el dinero esté y registrá el pago.</p>
+    <div id="aLista"></div>
+  </section>
+
+  <!-- Más -->
+  <section id="vMas" class="oculto">
+    <h2>Más acciones</h2>
+    <div class="card">
+      <h3>Cuotas</h3>
+      <label>Generar las cuotas de un mes (si ya existen, no se duplican)</label>
+      <div class="fila2"><input id="mPeriodo" type="month"><button class="btn" id="bGenerar" type="button" style="margin:0">Generar</button></div>
+      <div class="ok" id="mGenerarRes"></div>
+    </div>
+    <div class="card">
+      <h3>Recordatorios</h3>
+      <p class="muted" style="margin:0">Manda un mail a quienes tienen cuotas vencidas o por vencer (sin repetir a quien recibió uno hace poco).</p>
+      <button class="btn" id="bRecordar" type="button">Enviar recordatorios ahora</button>
+      <div class="ok" id="mRecordarRes"></div>
+    </div>
+    <div class="card">
+      <details>
+        <summary style="font-weight:600;cursor:pointer">Cambiar mi clave</summary>
+        <label>Clave actual</label><input id="cActual" type="password" autocapitalize="characters">
+        <label>Clave nueva (mínimo 8 caracteres)</label><input id="cNueva" type="password" autocapitalize="characters">
+        <button class="btn sec" id="bCambiarClave" type="button">Guardar</button>
+        <div class="error" id="eClave"></div>
+      </details>
+    </div>
+    <button class="btn peligro" id="bSalir" type="button">Cerrar sesión</button>
+  </section>
+
+  <!-- Alta -->
+  <section id="vAlta" class="oculto">
+    <button class="volver" data-ir="socios" type="button">‹ Volver</button>
+    <h2>Nuevo socio</h2>
+    <div class="card">
+      <form id="fAlta">
+        <label>DNI *</label><input name="DNI" inputmode="numeric" required>
+        <div class="fila2">
+          <div><label>Apellido *</label><input name="Apellido" required></div>
+          <div><label>Nombre *</label><input name="Nombre" required></div>
+        </div>
+        <label>Mail</label><input name="Email" type="email">
+        <label>Teléfono / WhatsApp</label><input name="Telefono" inputmode="tel">
+        <label>Fecha de nacimiento</label><input name="FechaNacimiento" type="date">
+        <label>Categoría</label><select name="Categoria" id="aCategoria"><option>General</option></select>
+        <label>Observaciones</label><textarea name="Observaciones" rows="2"></textarea>
+        <label style="display:flex;gap:8px;align-items:center;color:var(--tinta)"><input type="checkbox" name="EnviarEmail" checked style="width:auto"> Mandarle la clave por mail</label>
+        <button class="btn verde" id="bAlta" type="submit">Dar de alta</button>
+        <div class="error" id="eAlta"></div>
+      </form>
+    </div>
+  </section>
+</div>
+
+<nav class="tabs oculto" id="nav">
+  <button data-ir="inicio" class="on"><span class="i">⌂</span>Inicio</button>
+  <button data-ir="socios"><span class="i">☰</span>Socios</button>
+  <button data-ir="escanear"><span class="i">⌗</span>Escanear</button>
+  <button data-ir="avisos"><span class="i">✉</span>Avisos<span class="badge oculto" id="navBadge"></span></button>
+  <button data-ir="mas"><span class="i">⋯</span>Más</button>
+</nav>
+
+<div class="modal oculto" id="modal"><div class="caja" id="modalCaja"></div></div>
+<div class="toast oculto" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js" defer></script>
+<script src="comision.js"></script>
+</body>
+</html>

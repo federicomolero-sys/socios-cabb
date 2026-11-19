@@ -1,6 +1,6 @@
 // Service worker: guarda la "cáscara" de la app para que abra rápido.
 // Los datos de los socios NUNCA se guardan: siempre se piden al servidor.
-const VERSION = 'socios-cabb-v1';
+const VERSION = 'socios-cabb-v2';
 const ARCHIVOS = [
   './',
   './index.html',
@@ -9,7 +9,13 @@ const ARCHIVOS = [
   './icon-192.png',
   './icon-512.png',
   './apple-touch-icon.png',
-  './favicon-32.png'
+  './favicon-32.png',
+  './comision.html',
+  './comision.js',
+  './comision.webmanifest',
+  './comision-192.png',
+  './comision-512.png',
+  './comision-touch-icon.png'
 ];
 
 self.addEventListener('install', (e) => {
