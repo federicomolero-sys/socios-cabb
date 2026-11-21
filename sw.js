@@ -1,6 +1,6 @@
 // Service worker: guarda la "cáscara" de la app para que abra rápido.
 // Los datos de los socios NUNCA se guardan: siempre se piden al servidor.
-const VERSION = 'socios-cabb-v2';
+const VERSION = 'socios-cabb-v3';
 const ARCHIVOS = [
   './',
   './index.html',
@@ -12,6 +12,8 @@ const ARCHIVOS = [
   './favicon-32.png',
   './comision.html',
   './comision.js',
+  './comision-eventos.js',
+  './eventos-socio.js',
   './comision.webmanifest',
   './comision-192.png',
   './comision-512.png',
