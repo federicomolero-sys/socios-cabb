@@ -117,7 +117,10 @@
     .clave { font-family: monospace; font-size: 26px; font-weight: 700; letter-spacing: 3px; background: var(--crema); padding: 10px; border-radius: 10px; text-align: center; margin: 10px 0; }
     .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(80px + env(safe-area-inset-bottom)); background: var(--tinta); color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 14px; z-index: 30; max-width: 90%; }
     .cargando { text-align: center; color: var(--gris); padding: 40px 0; }
-  </style>
+      .ojo-w { position: relative; } .ojo-w input { padding-right: 46px; }
+    .ojo { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); border: 0; background: none; padding: 8px; color: #6b6b66; line-height: 0; cursor: pointer; }
+    .ojo svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -270,7 +273,9 @@
       <details>
         <summary style="font-weight:600;cursor:pointer">Cambiar mi clave</summary>
         <label>Clave actual</label><input id="cActual" type="password" autocapitalize="characters">
-        <label>Clave nueva (mínimo 8 caracteres)</label><input id="cNueva" type="password" autocapitalize="characters">
+        <label>Clave nueva</label><input id="cNueva" type="password" autocapitalize="characters" autocomplete="new-password">
+        <div class="muted" style="margin-top:5px">Mínimo 10 caracteres, con letras y números. No uses tu usuario ni tu nombre.</div>
+        <label>Repetí la clave nueva</label><input id="cNueva2" type="password" autocapitalize="characters" autocomplete="new-password">
         <button class="btn sec" id="bCambiarClave" type="button">Guardar</button>
         <div class="error" id="eClave"></div>
       </details>

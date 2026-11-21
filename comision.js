@@ -410,8 +410,11 @@ $('bRecordar').addEventListener('click', function () {
 });
 $('bCambiarClave').addEventListener('click', function () {
   $('eClave').textContent = ''; $('eClave').className = 'error';
+  var n1 = $('cNueva').value.trim().toUpperCase(), n2 = $('cNueva2').value.trim().toUpperCase();
+  if (n1 !== n2) { $('eClave').textContent = 'Las dos claves nuevas no coinciden. Escribilas de nuevo.'; $('cNueva2').value = ''; $('cNueva2').focus(); return; }
+  if (n1.length < 10 || !/[A-ZÑ]/.test(n1) || !/[0-9]/.test(n1)) { $('eClave').textContent = 'La clave nueva tiene que tener al menos 10 caracteres, con letras y números.'; return; }
   api('adminCambiarClave', token, $('cActual').value, $('cNueva').value).then(function () {
-    $('cActual').value = ''; $('cNueva').value = ''; $('eClave').className = 'ok'; $('eClave').textContent = 'Clave cambiada.';
+    $('cActual').value = ''; $('cNueva').value = ''; $('cNueva2').value = ''; $('eClave').className = 'ok'; $('eClave').textContent = 'Clave cambiada.';
   }).catch(function (e) { $('eClave').textContent = msg(e); });
 });
 (function () { var d = new Date(); $('mPeriodo').value = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2); })();
@@ -422,3 +425,22 @@ if ('serviceWorker' in navigator) {
 }
 token = ls(LS_TOKEN);
 if (token) entrar(ls(LS_NOMBRE)); else mostrar('vLogin');
+
+/* ---------- Ojito para ver la clave ---------- */
+function ponerOjitos(raiz) {
+  var abierto = '<svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var cerrado = '<svg viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6C3.8 8.4 2 12 2 12s3.5 7 10 7c1.6 0 3-.4 4.2-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+  Array.prototype.forEach.call((raiz || document).querySelectorAll('input[type=password]'), function (inp) {
+    if (inp.parentNode.classList.contains('ojo-w')) return;
+    var w = document.createElement('div'); w.className = 'ojo-w';
+    inp.parentNode.insertBefore(w, inp); w.appendChild(inp);
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'ojo'; b.setAttribute('aria-label', 'Mostrar la clave'); b.innerHTML = abierto;
+    b.addEventListener('click', function () {
+      var ver = inp.type === 'password';
+      inp.type = ver ? 'text' : 'password';
+      b.innerHTML = ver ? cerrado : abierto; b.setAttribute('aria-label', ver ? 'Ocultar la clave' : 'Mostrar la clave');
+    });
+    w.appendChild(b);
+  });
+}
+ponerOjitos();

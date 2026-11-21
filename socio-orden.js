@@ -11,7 +11,7 @@
   var css = document.createElement('style');
   css.textContent =
     '.wrap.con-tabs{padding-bottom:calc(92px + env(safe-area-inset-bottom))}' +
-    '.sec{display:none}.sec.activa{display:block;animation:secIn .18s ease-out}' +
+    '.seccion{display:none}.seccion.activa{display:block;animation:secIn .18s ease-out}' +
     '@keyframes secIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}' +
     '.sec-tit{font-size:20px;font-weight:700;color:var(--verde);margin:4px 2px 12px;display:flex;align-items:baseline;justify-content:space-between;gap:8px}' +
     '.sec-tit small{font-size:13px;font-weight:400;color:var(--gris)}' +
@@ -56,7 +56,7 @@
   var sec = {};
   SECS.forEach(function (s) {
     var d = document.createElement('section');
-    d.className = 'sec'; d.id = 'sec-' + s.id;
+    d.className = 'seccion'; d.id = 'sec-' + s.id;
     if (s.titulo) d.innerHTML = '<div class="sec-tit">' + s.titulo + '<small></small></div>';
     panel.appendChild(d);
     sec[s.id] = d;

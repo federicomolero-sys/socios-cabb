@@ -45,6 +45,9 @@
     .okmsg { color: var(--ok); font-size: 14px; margin-top: 12px; }
     .muted { color: var(--gris); font-size: 13px; }
     .oculto { display: none !important; }
+    .ojo-w { position: relative; } .ojo-w input { padding-right: 46px; }
+    .ojo { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); border: 0; background: none; padding: 8px; color: #6b6b66; line-height: 0; cursor: pointer; }
+    .ojo svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
     /* Carnet */
     .carnet { background: linear-gradient(140deg, var(--verde) 0%, var(--verde2) 100%); color: #fff; border-radius: 18px; padding: 18px 18px 16px; position: relative; overflow: hidden; margin-bottom: 14px; box-shadow: 0 6px 18px rgba(31,61,43,.25); }
@@ -172,8 +175,11 @@
         <form id="fClave">
           <label for="kActual">Clave actual</label>
           <input id="kActual" type="password" autocomplete="current-password" autocapitalize="characters" required>
-          <label for="kNueva">Clave nueva (mínimo 6 caracteres)</label>
-          <input id="kNueva" type="password" autocomplete="new-password" autocapitalize="characters" required>
+          <label for="kNueva">Clave nueva</label>
+          <input id="kNueva" type="password" autocomplete="new-password" autocapitalize="characters" minlength="8" required>
+          <div class="muted" style="margin-top:5px">Mínimo 8 caracteres, con letras y números. No uses tu DNI ni tu nombre.</div>
+          <label for="kNueva2">Repetí la clave nueva</label>
+          <input id="kNueva2" type="password" autocomplete="new-password" autocapitalize="characters" minlength="8" required>
           <button class="btn sec" id="bClave" type="submit">Guardar clave</button>
           <div class="error" id="eClave"></div>
         </form>
