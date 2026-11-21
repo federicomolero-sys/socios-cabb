@@ -178,6 +178,8 @@
     return det.split(' · ').map(function (p) {
       if (/^Familiar /.test(p)) return 'Grupo familiar';
       if (/^Individual /.test(p)) return 'Individual';
+      if (/^Plan /.test(p)) return 'Plan anual/semestral';
+      if (/^Desc\. temporal/.test(p)) return 'Descuento temporal';
       var m = p.match(/^(.*) (\d+(\.\d+)?%|\$ ?[\d.]+)$/);
       return 'Grupo: ' + (m ? m[1] : p);
     });
@@ -307,7 +309,7 @@
       var s = porNro[c[0]] || { categoria: '?', genero: '', edad: null, grupos: [] };
       var claves;
       if (por === 'categoria') claves = [s.categoria];
-      else if (por === 'descuento') claves = tiposDeDetalle(c[5]);
+      else if (por === 'descuento') claves = c[8] === 'Multa' ? ['Multa'] : tiposDeDetalle(c[5]);
       else if (por === 'grupo') claves = s.grupos.length ? s.grupos : ['Sin grupo'];
       else if (por === 'genero') claves = [s.genero || 'Sin dato'];
       else if (por === 'edad') claves = [nombreFranja(franja(s.edad))];

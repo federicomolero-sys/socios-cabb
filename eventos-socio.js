@@ -83,6 +83,7 @@
               '<label style="margin-top:10px">¿Ya pagaste? Avisanos:</label>' +
               '<select class="evMedio">' + datos.medios.map(function (m) { return '<option>' + esc(m) + '</option>'; }).join('') + '</select>' +
               '<input class="evComent" maxlength="300" placeholder="Comentario (opcional)">' +
+              '<label>Comprobante (opcional)</label><input type="file" accept="image/*,application/pdf" class="evComp">' +
               '<button class="btn evAvisar" type="button">Avisar que pagué ' + esc(i.montoTxt) + '</button></div>';
           }
         }
@@ -101,8 +102,30 @@
         }
         h += '<button class="btn evAnotar" type="button">Anotarme</button>';
       }
+      if (e.familia && e.familia.length) h += familiaHtml(e);
       return h + '<div class="error evErr"></div></div>';
     }).join('');
+  }
+
+  function familiaHtml(e) {
+    var h = '<div class="ev-pago" style="background:#f4f7fb"><b>👪 Tu familia</b>';
+    e.familia.forEach(function (m) {
+      h += '<div style="margin-top:8px" data-nro="' + esc(m.nro) + '"><b>' + esc(m.nombre) + '</b>: ';
+      if (!m.inscripcion) {
+        h += e.lleno ? 'cupo completo' : '<button class="link evFamAnotar" type="button" data-nro="' + esc(m.nro) + '">Anotar' + (e.esPago ? ' (' + esc(m.precioTxt) + ')' : '') + '</button>';
+      } else {
+        var i = m.inscripcion;
+        if (i.pago === 'Pagado') h += 'anotado/a · pagado';
+        else if (i.pago === 'Avisado') h += 'anotado/a · pago avisado';
+        else if (i.pago === 'Pendiente') h += 'anotado/a · falta pagar ' + esc(i.montoTxt) +
+          '<select class="evMedio" data-nro="' + esc(m.nro) + '">' + datos.medios.map(function (x) { return '<option>' + esc(x) + '</option>'; }).join('') + '</select>' +
+          '<input type="file" accept="image/*,application/pdf" class="evComp" data-nro="' + esc(m.nro) + '">' +
+          '<button class="btn evFamAvisar" type="button" data-nro="' + esc(m.nro) + '">Avisar que pagué ' + esc(i.montoTxt) + '</button>';
+        else h += 'anotado/a';
+      }
+      h += '</div>';
+    });
+    return h + '</div>';
   }
 
   function datosPago() {
@@ -120,14 +143,20 @@
     var box = ev.target.closest('.ev'); if (!box) return;
     var id = box.getAttribute('data-id');
     var err = box.querySelector('.evErr');
-    var accion = null, args = [];
+    var accion = null, args = [], comp = null, nro = b.getAttribute('data-nro');
+    var leer = function (input) { return window.leerComprobante ? window.leerComprobante(input) : Promise.resolve(null); };
     if (b.classList.contains('evAnotar')) { accion = 'inscribirEvento'; args = [token, id]; }
     else if (b.classList.contains('evBaja')) { accion = 'cancelarEvento'; args = [token, id]; }
-    else if (b.classList.contains('evAvisar')) { accion = 'avisarPagoEvento'; args = [token, id, box.querySelector('.evMedio').value, box.querySelector('.evComent').value]; }
+    else if (b.classList.contains('evAvisar')) { accion = 'avisarPagoEvento'; args = [token, id, box.querySelector('.evMedio:not([data-nro])').value, box.querySelector('.evComent').value]; comp = box.querySelector('.evComp:not([data-nro])'); }
+    else if (b.classList.contains('evFamAnotar')) { accion = 'inscribirFamiliar'; args = [token, id, nro]; }
+    else if (b.classList.contains('evFamAvisar')) { accion = 'avisarPagoEvento'; args = [token, id, box.querySelector('.evMedio[data-nro="' + nro + '"]').value, '']; comp = box.querySelector('.evComp[data-nro="' + nro + '"]'); }
     if (!accion) return;
     err.textContent = '';
     b.disabled = true;
-    api.apply(null, [accion].concat(args)).then(function () { cargar(); })
+    (comp ? leer(comp) : Promise.resolve(null)).then(function (arch) {
+      if (accion === 'avisarPagoEvento') args.push(arch, nro || '');
+      return api.apply(null, [accion].concat(args));
+    }).then(function () { cargar(); })
       .catch(function (e) { b.disabled = false; if (!sesionVencida(e)) err.textContent = msgError(e); });
   });
 
