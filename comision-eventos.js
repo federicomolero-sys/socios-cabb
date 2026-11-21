@@ -29,7 +29,9 @@
     '.chkfila { display: flex; gap: 8px; align-items: center; color: var(--tinta); font-weight: 600; margin-top: 12px; }' +
     '.pestanas { display: flex; gap: 6px; margin-bottom: 8px; } .pestanas button { flex: 1; border: 1px solid var(--azul); background: #fff; color: var(--azul); border-radius: 8px; padding: 8px; }' +
     '.pestanas button.on { background: var(--azul); color: #fff; }' +
-    '.resultado { border: 1px solid var(--linea); border-radius: 8px; padding: 8px 10px; margin-top: 6px; cursor: pointer; font-size: 14px; }';
+    '.resultado { border: 1px solid var(--linea); border-radius: 8px; padding: 8px 10px; margin-top: 6px; cursor: pointer; font-size: 14px; }' +
+    '.filtros { display: flex; gap: 8px; margin-bottom: 8px; } .filtros select { flex: 1; padding: 9px; font-size: 15px; }' +
+    '.totales { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; } .totales span { background: var(--papel); border: 1px solid var(--linea); border-radius: 8px; padding: 6px 10px; font-size: 13px; }';
   document.head.appendChild(css);
 
   /* ---------- pestaña en la barra inferior ---------- */
@@ -45,6 +47,10 @@
     '<section id="vEventos" class="oculto">' +
     '  <div class="fila2" style="align-items:center;margin-bottom:8px"><h2 style="margin:0">Eventos</h2>' +
     '  <button class="btn" id="bNuevoEv" type="button" style="flex:0 0 auto;width:auto;margin:0;padding:10px 14px">＋ Nuevo</button></div>' +
+    '  <div class="pestanas" id="evSolapas"><button class="on" data-s="prox" type="button">Próximos</button><button data-s="past" type="button">Pasados</button></div>' +
+    '  <div id="evFiltros" class="oculto"><div class="filtros"><select id="evAnio"></select><select id="evMes"></select></div>' +
+    '  <input id="evBuscar" type="search" placeholder="Buscar por nombre del evento" autocomplete="off" style="margin-bottom:8px">' +
+    '  <div class="totales" id="evTotales"></div></div>' +
     '  <div id="evcLista"></div>' +
     '</section>' +
     '<section id="vEvento" class="oculto">' +
@@ -107,18 +113,66 @@
     var p = String(f).split('/'), m = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
     return { d: Number(p[0]) || '', m: m[(Number(p[1]) || 1) - 1] || '' };
   }
+  var todos = [], solapa = 'prox';
+  var MESES_L = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   function cargarLista() {
     $('evcLista').innerHTML = '<div class="cargando">Cargando…</div>';
-    api('adminEventos', token).then(function (l) {
-      $('evcLista').innerHTML = l.length ? l.map(function (e) {
-        var f = partes(e.fecha);
-        return '<div class="evc' + (e.pasado ? ' pasado' : '') + '" data-id="' + esc(e.id) + '"><div class="f"><div class="d">' + f.d + '</div><div class="m">' + f.m + '</div></div>' +
-          '<div class="i"><div class="t">' + esc(e.titulo) + '<span class="chipest ' + esc(e.estado) + '">' + esc(e.pasado ? 'Finalizado' : e.estado) + '</span></div>' +
-          '<div class="s">' + (e.hora ? esc(e.hora) + ' hs · ' : '') + e.inscriptos + (e.cupo ? '/' + e.cupo : '') + ' anotados' +
-          (e.esPago ? ' · ' + esc(e.recaudadoTxt) + ' cobrados' : ' · sin costo') + (e.avisados ? ' · <b style="color:var(--aviso)">' + e.avisados + ' aviso' + (e.avisados === 1 ? '' : 's') + '</b>' : '') + '</div></div></div>';
-      }).join('') : '<div class="card muted" style="text-align:center">Todavía no hay eventos. Creá el primero con ＋ Nuevo.</div>';
-    }).catch(function (e) { $('evcLista').innerHTML = '<div class="error">' + esc(msg(e)) + '</div>'; });
+    api('adminEventos', token).then(function (l) { todos = l; armarFiltros(); pintarLista(); })
+      .catch(function (e) { $('evcLista').innerHTML = '<div class="error">' + esc(msg(e)) + '</div>'; });
   }
+  function anioDe(e) { return String(e.fecha).split('/')[2] || ''; }
+  function mesDe(e) { return Number(String(e.fecha).split('/')[1]) || 0; }
+  function armarFiltros() {
+    var anioSel = $('evAnio').value, mesSel = $('evMes').value;
+    var anios = [];
+    todos.forEach(function (e) { if (e.pasado && anios.indexOf(anioDe(e)) < 0) anios.push(anioDe(e)); });
+    anios.sort().reverse();
+    $('evAnio').innerHTML = '<option value="">Todos los años</option>' + anios.map(function (a) { return '<option>' + a + '</option>'; }).join('');
+    $('evMes').innerHTML = '<option value="">Todos los meses</option>' + MESES_L.map(function (m, i) { return '<option value="' + (i + 1) + '">' + m + '</option>'; }).join('');
+    if (anios.indexOf(anioSel) >= 0) $('evAnio').value = anioSel;
+    $('evMes').value = mesSel || '';
+  }
+  function filaEvento(e) {
+    var f = partes(e.fecha);
+    return '<div class="evc' + (e.pasado ? ' pasado' : '') + '" data-id="' + esc(e.id) + '"><div class="f"><div class="d">' + f.d + '</div><div class="m">' + f.m + '</div></div>' +
+      '<div class="i"><div class="t">' + esc(e.titulo) + '<span class="chipest ' + esc(e.estado) + '">' + esc(e.pasado ? (e.estado === 'Cancelado' ? 'Cancelado' : 'Finalizado') : e.estado) + '</span></div>' +
+      '<div class="s">' + (e.pasado ? esc(e.fecha) + ' · ' : '') + (e.hora ? esc(e.hora) + ' hs · ' : '') + e.inscriptos + (e.cupo ? '/' + e.cupo : '') + ' anotados' +
+      (e.esPago ? ' · ' + esc(e.recaudadoTxt) + ' cobrados' : ' · sin costo') + (e.avisados ? ' · <b style="color:var(--aviso)">' + e.avisados + ' aviso' + (e.avisados === 1 ? '' : 's') + '</b>' : '') + '</div></div></div>';
+  }
+  function pintarLista() {
+    $('evFiltros').classList.toggle('oculto', solapa !== 'past');
+    var lista;
+    if (solapa === 'prox') {
+      lista = todos.filter(function (e) { return !e.pasado; });
+      $('evcLista').innerHTML = lista.length ? lista.map(filaEvento).join('') :
+        '<div class="card muted" style="text-align:center">No hay eventos próximos. Creá uno con ＋ Nuevo.</div>';
+      return;
+    }
+    var anio = $('evAnio').value, mes = Number($('evMes').value) || 0, q = sinAcentos($('evBuscar').value).trim();
+    lista = todos.filter(function (e) {
+      if (!e.pasado) return false;
+      if (anio && anioDe(e) !== anio) return false;
+      if (mes && mesDe(e) !== mes) return false;
+      if (q && sinAcentos(e.titulo).indexOf(q) < 0) return false;
+      return true;
+    });
+    var validos = lista.filter(function (e) { return e.estado !== 'Cancelado'; });
+    var anotados = validos.reduce(function (a, e) { return a + e.inscriptos; }, 0);
+    var cobrado = validos.reduce(function (a, e) { return a + (e.recaudado || 0); }, 0);
+    $('evTotales').innerHTML = '<span><b>' + validos.length + '</b> evento' + (validos.length === 1 ? '' : 's') + '</span>' +
+      '<span><b>' + anotados + '</b> anotados</span><span><b>' + esc(plata(cobrado)) + '</b> recaudados</span>';
+    $('evcLista').innerHTML = lista.length ? lista.map(filaEvento).join('') :
+      '<div class="card muted" style="text-align:center">No hay eventos pasados con ese filtro.</div>';
+  }
+  $('evSolapas').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button'); if (!b) return;
+    solapa = b.dataset.s;
+    document.querySelectorAll('#evSolapas button').forEach(function (x) { x.classList.toggle('on', x === b); });
+    pintarLista();
+  });
+  $('evAnio').addEventListener('change', pintarLista);
+  $('evMes').addEventListener('change', pintarLista);
+  $('evBuscar').addEventListener('input', pintarLista);
   $('evcLista').addEventListener('click', function (ev) { var c = ev.target.closest('.evc'); if (c) abrir(c.dataset.id); });
   $('bNuevoEv').addEventListener('click', function () { abrirForm(null); });
 
