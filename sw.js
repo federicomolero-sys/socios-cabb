@@ -1,6 +1,6 @@
 // Service worker: guarda la "cáscara" de la app para que abra rápido.
 // Los datos de los socios NUNCA se guardan: siempre se piden al servidor.
-const VERSION = 'socios-cabb-v9';
+const VERSION = 'socios-cabb-v10';
 const API_URL = 'https://script.google.com/macros/s/AKfycbz6MBX6o76Dno-xnLE1PtckRpIqfLbuaZ7VbjCjXEuwnreJOD_wJYgCZ9hWd848Ij8/exec';
 const ARCHIVOS = [
   './',
@@ -23,6 +23,7 @@ const ARCHIVOS = [
   './comision-gestion.js',
   './socio-gestion.js',
   './socio-clases.js',
+  './socio-orden.js',
   './comision-clases.js',
   './escudo.svg',
   './comision.webmanifest',
