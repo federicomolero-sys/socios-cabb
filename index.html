@@ -28,7 +28,7 @@
     .instalar button { border: 0; background: var(--verde); color: #fff; border-radius: 8px; padding: 8px 12px; font-weight: 600; }
     .instalar .cerrar { background: none; color: var(--gris); padding: 4px 6px; }
     header.top { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-    header.top .pieza { font-size: 30px; line-height: 1; color: var(--verde); }
+    header.top .pieza { height: 40px; width: auto; flex: none; }
     header.top h1 { font-size: 16px; margin: 0; font-weight: 700; color: var(--verde); }
     header.top small { display: block; color: var(--gris); font-weight: 400; font-size: 12px; }
     .card { background: var(--papel); border: 1px solid var(--linea); border-radius: 14px; padding: 18px; margin-bottom: 14px; }
@@ -86,7 +86,7 @@
 <body>
 <div class="wrap">
   <header class="top">
-    <div class="pieza">♞</div>
+    <img class="pieza" src="escudo.svg" alt="Escudo del Círculo">
     <h1>Círculo de Ajedrez de Bahía Blanca<small>Portal de socios</small></h1>
   </header>
 
@@ -188,5 +188,6 @@
 <script src="eventos-socio.js"></script>
 <script src="socio-extras.js"></script>
 <script src="socio-gestion.js"></script>
+<script src="socio-clases.js"></script>
 </body>
 </html>
