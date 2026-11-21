@@ -399,11 +399,11 @@ $('bGenerar').addEventListener('click', function () {
   });
 });
 $('bRecordar').addEventListener('click', function () {
-  confirmar('¿Mandar ahora los recordatorios por mail?', 'Enviar', function () {
+  confirmar('¿Mandar ahora los recordatorios? Llegan por mail y, a quienes activaron los avisos, también al celular.', 'Enviar', function () {
     ocupado($('bRecordar'), true, 'Enviando…');
     api('adminRecordatorios', token).then(function (r) {
-      $('mRecordarRes').textContent = 'Mails enviados: ' + r.enviados + '.' + (r.porCupo ? ' Quedaron ' + r.porCupo + ' para mañana por el límite diario.' : '') +
-        (r.sinEmail.length ? ' Sin mail cargado: ' + r.sinEmail.join(', ') + '.' : '');
+      $('mRecordarRes').textContent = 'Mails enviados: ' + r.enviados + '.' + (r.notificados ? ' Avisos al celular: ' + r.notificados + '.' : '') + (r.porCupo ? ' Quedaron ' + r.porCupo + ' para mañana por el límite diario.' : '') +
+        (r.sinEmail.length ? ' Sin mail ni avisos: ' + r.sinEmail.join(', ') + '.' : '');
     }).catch(function (e) { $('mRecordarRes').textContent = msg(e); })
       .then(function () { ocupado($('bRecordar'), false); });
   });

@@ -1,6 +1,6 @@
 // Service worker: guarda la "cáscara" de la app para que abra rápido.
 // Los datos de los socios NUNCA se guardan: siempre se piden al servidor.
-const VERSION = 'socios-cabb-v4';
+const VERSION = 'socios-cabb-v5';
 const API_URL = 'https://script.google.com/macros/s/AKfycbz6MBX6o76Dno-xnLE1PtckRpIqfLbuaZ7VbjCjXEuwnreJOD_wJYgCZ9hWd848Ij8/exec';
 const ARCHIVOS = [
   './',
@@ -17,6 +17,7 @@ const ARCHIVOS = [
   './eventos-socio.js',
   './socio-extras.js',
   './comision-extras.js',
+  './comision-reportes.js',
   './comision.webmanifest',
   './comision-192.png',
   './comision-512.png',
@@ -54,7 +55,9 @@ self.addEventListener('fetch', (e) => {
 self.addEventListener('push', (e) => {
   const generico = { titulo: 'Círculo de Ajedrez', cuerpo: 'Tenés novedades en la app de socios.', url: './', tag: 'cabb' };
   e.waitUntil(
-    fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ accion: 'notificacion', args: [] }) })
+    self.registration.pushManager.getSubscription()
+      .then((sub) => fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ accion: 'notificacion', args: [sub ? sub.endpoint : ''] }) }))
       .then((r) => r.json())
       .then((r) => (r && r.ok && r.data) || generico)
       .catch(() => generico)
