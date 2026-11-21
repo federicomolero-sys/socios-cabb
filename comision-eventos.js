@@ -184,7 +184,7 @@
     api('adminEvento', token, id).then(pintar).catch(function (e) { $('edTit').textContent = msg(e); });
   }
   function pintar(e) {
-    evActual = e;
+    evActual = e; window.evActual = e;
     $('edTit').innerHTML = esc(e.titulo) + ' <span class="chipest ' + esc(e.estado) + '">' + esc(e.pasado ? 'Finalizado' : e.estado) + '</span>';
     $('edSub').textContent = e.fechaLarga.charAt(0).toUpperCase() + e.fechaLarga.slice(1) + (e.hora ? ' · ' + e.hora + ' hs' : '') + (e.lugar ? ' · ' + e.lugar : '');
     $('edPrecio').innerHTML = e.esPago ? 'Socios ' + esc(e.precioSocioTxt) + (e.precioExterno ? ' · No socios ' + esc(e.precioExternoTxt) : '') +

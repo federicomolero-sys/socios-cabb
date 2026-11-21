@@ -1,6 +1,7 @@
 // Service worker: guarda la "cáscara" de la app para que abra rápido.
 // Los datos de los socios NUNCA se guardan: siempre se piden al servidor.
-const VERSION = 'socios-cabb-v3';
+const VERSION = 'socios-cabb-v4';
+const API_URL = 'https://script.google.com/macros/s/AKfycbz6MBX6o76Dno-xnLE1PtckRpIqfLbuaZ7VbjCjXEuwnreJOD_wJYgCZ9hWd848Ij8/exec';
 const ARCHIVOS = [
   './',
   './index.html',
@@ -14,6 +15,8 @@ const ARCHIVOS = [
   './comision.js',
   './comision-eventos.js',
   './eventos-socio.js',
+  './socio-extras.js',
+  './comision-extras.js',
   './comision.webmanifest',
   './comision-192.png',
   './comision-512.png',
@@ -44,5 +47,31 @@ self.addEventListener('fetch', (e) => {
         return r;
       })
       .catch(() => caches.match(e.request).then((r) => r || caches.match('./index.html')))
+  );
+});
+
+// Notificaciones: el aviso llega vacío y el texto se pide al servidor (así no hace falta cifrarlo).
+self.addEventListener('push', (e) => {
+  const generico = { titulo: 'Círculo de Ajedrez', cuerpo: 'Tenés novedades en la app de socios.', url: './', tag: 'cabb' };
+  e.waitUntil(
+    fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ accion: 'notificacion', args: [] }) })
+      .then((r) => r.json())
+      .then((r) => (r && r.ok && r.data) || generico)
+      .catch(() => generico)
+      .then((n) => self.registration.showNotification(n.titulo, {
+        body: n.cuerpo, icon: 'icon-192.png', badge: 'favicon-32.png', tag: n.tag || 'cabb', renotify: true, data: { url: n.url || './' }
+      }))
+  );
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const destino = new URL((e.notification.data && e.notification.data.url) || './', self.location.href).href;
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((lista) => {
+      const abierta = lista.find((c) => c.url.indexOf(self.registration.scope) === 0 && !/comision/.test(c.url));
+      if (abierta) return abierta.focus();
+      return self.clients.openWindow(destino);
+    })
   );
 });
