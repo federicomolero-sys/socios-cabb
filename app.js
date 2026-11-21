@@ -75,7 +75,9 @@ $('fLogin').addEventListener('submit', function (ev) {
 
 function pintar(d) {
   datos = d;
-  $('cClub').textContent = d.club;
+  var club = String(d.club || ''), corte = club.lastIndexOf(' de ');
+  if (club.length > 22 && corte > 0) $('cClub').innerHTML = esc(club.slice(0, corte)) + '<br>' + esc(club.slice(corte + 1));
+  else $('cClub').textContent = club;
   $('cNombre').textContent = d.nombre + ' ' + d.apellido;
   $('cDatos').textContent = 'Socio Nº ' + d.nro + (d.categoria ? ' · ' + d.categoria : '') + ' · DNI ' + d.dni;
   $('cDesde').textContent = d.socioDesde ? 'Socio desde ' + d.socioDesde : '';
@@ -86,7 +88,7 @@ function pintar(d) {
 
   $('cQR').innerHTML = '';
   if (window.QRCode) {
-    new QRCode($('cQR'), { text: d.qr, width: 240, height: 240, correctLevel: QRCode.CorrectLevel.M });
+    new QRCode($('cQR'), { text: d.qr, width: 240, height: 240, colorDark: '#0b1610', colorLight: '#f6efd9', correctLevel: QRCode.CorrectLevel.M });
   } else {
     $('cQR').innerHTML = '<div style="color:#333;font-size:11px;padding:6px">No se pudo dibujar el QR.</div>';
   }

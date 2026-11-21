@@ -50,15 +50,24 @@
     .ojo svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
     /* Carnet */
-    .carnet { background: linear-gradient(140deg, var(--verde) 0%, var(--verde2) 100%); color: #fff; border-radius: 18px; padding: 18px 18px 16px; position: relative; overflow: hidden; margin-bottom: 14px; box-shadow: 0 6px 18px rgba(31,61,43,.25); }
-    .carnet::after { content: ""; position: absolute; right: -40px; top: -40px; width: 180px; height: 180px; opacity: .08;
-      background: repeating-conic-gradient(#fff 0 25%, transparent 0 50%) 0 0 / 45px 45px; transform: rotate(12deg); }
-    .carnet .club { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; opacity: .85; }
-    .carnet .tipo { font-size: 11px; letter-spacing: .14em; opacity: .65; margin-top: 2px; }
-    .carnet .nombre { font-size: 22px; font-weight: 700; margin: 14px 0 2px; line-height: 1.15; }
-    .carnet .datos { font-size: 13px; opacity: .9; }
+    .carnet { background: radial-gradient(120% 140% at 0% 0%, #1d3a2a 0%, #0f1f17 60%, #0b1610 100%); color: #efe6cc; border-radius: 18px; padding: 18px 18px 16px; position: relative; overflow: hidden; margin-bottom: 14px; box-shadow: 0 10px 24px rgba(0,0,0,.32); }
+    .carnet::after { content: ""; position: absolute; left: -20%; top: 0; width: 60%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.07), transparent); transform: skewX(-18deg); pointer-events: none; animation: brillo 7s ease-in-out infinite; }
+    @keyframes brillo { 0%, 70% { left: -60%; } 100% { left: 130%; } }
+    @media (prefers-reduced-motion: reduce) { .carnet::after { animation: none; left: -20%; } }
+    .carnet .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; position: relative; z-index: 1; }
+    .carnet .escudo { width: 46px; height: 62px; flex: none; background: linear-gradient(160deg, #f3e2a9, #c9a85a 45%, #8a6d2b 70%, #e8d290);
+      -webkit-mask: url(escudo.svg) center / contain no-repeat; mask: url(escudo.svg) center / contain no-repeat; }
+    .carnet .club { font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase; color: #c9a85a; line-height: 1.6; }
+    .carnet .tipo { font-size: 10.5px; letter-spacing: .22em; color: #8f8a77; line-height: 1.6; }
+    .carnet .nombre { font-family: Georgia, "Times New Roman", serif; font-size: 25px; font-weight: 400; margin: 8px 0 2px; line-height: 1.15; position: relative; z-index: 1;
+      background: linear-gradient(90deg, #f6ecc9, #d9bd73); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .carnet .datos { font-size: 12.5px; color: #bfb79f; position: relative; z-index: 1; }
+    .carnet .linea { height: 1px; background: linear-gradient(90deg, #c9a85a, transparent); margin-top: 10px; width: 60%; position: relative; z-index: 1; }
     .carnet .fila { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-top: 14px; position: relative; z-index: 1; }
-    .qr { background: #fff; padding: 8px; border-radius: 10px; width: 136px; height: 136px; flex: none; }
+    .carnet .badge.ok { background: transparent; border: 1px solid #7fc79a; color: #9fe0b6; }
+    .carnet .badge.mal { background: rgba(179,38,30,.18); border: 1px solid #e0796f; color: #ffb3aa; }
+    .carnet .badge.gris { background: transparent; border: 1px solid #8f8a77; color: #cfc8b0; }
+    .qr { background: #f6efd9; padding: 8px; border-radius: 10px; width: 136px; height: 136px; flex: none; }
     .qr img, .qr canvas { width: 120px !important; height: 120px !important; display: block; }
     .badge { display: inline-block; padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
     .badge.ok { background: #d8f0e0; color: var(--ok); }
@@ -121,10 +130,13 @@
   <!-- Panel del socio -->
   <div id="vPanel" class="oculto">
     <div class="carnet">
-      <div class="club" id="cClub"></div>
-      <div class="tipo">CARNET DE SOCIO</div>
+      <div class="top">
+        <div><div class="club" id="cClub"></div><div class="tipo">CARNET DE SOCIO</div></div>
+        <i class="escudo" role="img" aria-label="Escudo del Círculo"></i>
+      </div>
       <div class="nombre" id="cNombre"></div>
       <div class="datos" id="cDatos"></div>
+      <div class="linea"></div>
       <div class="fila">
         <div>
           <span class="badge" id="cBadge"></span>
