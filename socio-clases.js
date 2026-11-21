@@ -124,11 +124,14 @@
       h += '<div class="cl-sub">Mis clases</div>';
       var pendientes = [];
       mias.forEach(function (m) {
-        var chip = m.estado === 'Inscripto' ? '<span class="cl-chip ok">Anotado/a</span>' : m.estado === 'Pedido' ? '<span class="cl-chip av">Esperando confirmación</span>' : '<span class="cl-chip">Dejaste el curso</span>';
+        var chip = m.estado === 'Inscripto' ? '<span class="cl-chip ok">Anotado/a</span>' : m.estado === 'Pedido' ? '<span class="cl-chip av">Esperando confirmación</span>' :
+          m.estado === 'Prueba' ? '<span class="cl-chip av">Clase de prueba pedida: la comisión te avisa el día</span>' :
+          m.estado === 'PruebaAgendada' ? '<span class="cl-chip ok">Clase de prueba gratis: ' + esc(m.fechaPrueba.slice(0, 5)) + (m.hora ? ' a las ' + esc(m.hora) : '') + '</span>' : '<span class="cl-chip">Dejaste el curso</span>';
         h += '<div class="cl" data-al="' + esc(m.id) + '"><div class="cl-t"><div><div class="cl-n">' + esc(m.curso) + (m.profesor ? ' <span class="cl-s">con ' + esc(m.profesor) + '</span>' : '') + '</div>' +
           '<div class="cl-s">' + esc(m.horario) + (m.estado === 'Inscripto' && m.proxima ? ' · próxima: ' + esc(m.proxima) : '') + '</div>' + chip + '</div>' +
           (m.precioTxt ? '<div class="cl-p">' + esc(m.precioTxt) + '</div>' : '') + '</div>' +
-          (m.estado === 'Pedido' ? '<button class="link clDejar" type="button" style="margin-top:8px">Cancelar pedido</button>' : '') +
+          (m.estado === 'Pedido' || m.estado === 'Prueba' || m.estado === 'PruebaAgendada' ? '<button class="link clDejar" type="button" style="margin-top:8px">' + (m.estado === 'Pedido' ? 'Cancelar pedido' : 'Cancelar la clase de prueba') + '</button>' : '') +
+          (m.estado === 'PruebaAgendada' ? '<button class="btn clAnotarme" type="button" data-cur="' + esc(m.idCurso) + '">¿Te gustó? Quiero anotarme</button>' : '') +
           (m.estado === 'Inscripto' ? '<button class="link clDejar" type="button" style="margin-top:8px;font-size:13px">Dejar el curso</button>' : '') + '</div>';
         m.pendientes.forEach(function (p) { pendientes.push({ curso: m.curso, p: p }); });
       });
@@ -157,7 +160,10 @@
           '<div class="cl-s">' + esc(c.horario) + (c.proxima ? ' · próxima: ' + esc(c.proxima) : '') + '</div>' +
           (c.cupoTxt ? '<span class="cl-chip ' + (c.lleno ? 'mal' : '') + '">' + esc(c.cupoTxt) + '</span>' : '') + '</div><div class="cl-p">' + esc(c.precioTxt) + '</div></div>' +
           (c.descripcion ? '<div class="cl-s" style="margin-top:6px">' + esc(c.descripcion) + '</div>' : '') +
+          (c.prueba ? '<button class="btn clProbar" type="button">🎁 Probar una clase gratis</button>' : '') +
           '<button class="btn sec clQuiero" type="button">' + (c.lleno ? 'Pedir lugar (cupo completo)' : 'Quiero anotarme') + '</button>' +
+          '<div class="clFormP oculto"><textarea rows="2" maxlength="300" placeholder="Comentario (opcional): día que preferís, nivel…"></textarea>' +
+          '<button class="btn clPedirP" type="button">Pedir clase de prueba</button><div class="muted" style="margin-top:6px">Es gratis y sin compromiso. La comisión te confirma el día.</div></div>' +
           '<div class="clForm oculto"><textarea rows="2" maxlength="300" placeholder="Comentario para la comisión (opcional)"></textarea>' +
           '<button class="btn clPedir" type="button">Enviar pedido</button><div class="muted" style="margin-top:6px">La comisión confirma tu lugar. La cuota del curso se paga aparte de la cuota social.</div></div></div>';
       }).join('');
@@ -172,16 +178,29 @@
     var err = document.getElementById('claErr'); err.textContent = '';
     var cur = ev.target.closest('[data-cur]'), al = ev.target.closest('[data-al]');
     var fallo = function (e) { if (!sesionVencida(e)) err.textContent = msgError(e); };
-    if (b.classList.contains('clQuiero')) { cur.querySelector('.clForm').classList.remove('oculto'); b.classList.add('oculto'); return; }
+    if (b.classList.contains('clQuiero')) { cur.querySelector('.clForm').classList.remove('oculto'); cur.querySelector('.clFormP').classList.add('oculto'); b.classList.add('oculto'); return; }
+    if (b.classList.contains('clProbar')) { cur.querySelector('.clFormP').classList.remove('oculto'); cur.querySelector('.clForm').classList.add('oculto'); b.classList.add('oculto'); return; }
+    if (b.classList.contains('clPedirP')) {
+      b.disabled = true; b.textContent = 'Enviando…';
+      api('pedirPrueba', token, cur.dataset.cur, cur.querySelector('.clFormP textarea').value).then(function () { return cargar(true); })
+        .catch(function (e) { b.disabled = false; b.textContent = 'Pedir clase de prueba'; fallo(e); });
+      return;
+    }
+    if (b.classList.contains('clAnotarme')) {
+      b.disabled = true; b.textContent = 'Enviando…';
+      api('pedirClase', token, b.dataset.cur, 'Después de la clase de prueba').then(function () { return cargar(true); })
+        .catch(function (e) { b.disabled = false; b.textContent = '¿Te gustó? Quiero anotarme'; fallo(e); });
+      return;
+    }
     if (b.classList.contains('clPedir')) {
       b.disabled = true; b.textContent = 'Enviando…';
-      api('pedirClase', token, cur.dataset.cur, cur.querySelector('textarea').value).then(function () { return cargar(true); })
+      api('pedirClase', token, cur.dataset.cur, cur.querySelector('.clForm textarea').value).then(function () { return cargar(true); })
         .catch(function (e) { b.disabled = false; b.textContent = 'Enviar pedido'; fallo(e); });
       return;
     }
     if (b.classList.contains('clDejar')) {
       var m = club.mias.filter(function (x) { return x.id === al.dataset.al; })[0];
-      var txt = m.estado === 'Pedido' ? '¿Cancelar el pedido para ' + m.curso + '?' : '¿Dejar el curso ' + m.curso + '? Si debés cuotas del curso, siguen pendientes.';
+      var txt = m.estado === 'Pedido' ? '¿Cancelar el pedido para ' + m.curso + '?' : /^Prueba/.test(m.estado) ? '¿Cancelar la clase de prueba de ' + m.curso + '?' : '¿Dejar el curso ' + m.curso + '? Si debés cuotas del curso, siguen pendientes.';
       if (!window.confirm(txt)) return;
       b.disabled = true;
       api('dejarClase', token, m.id).then(function () { return cargar(true); }).catch(function (e) { b.disabled = false; fallo(e); });

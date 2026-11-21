@@ -93,6 +93,7 @@
     var item = function (c) {
       return '<div class="gs-item" data-id="' + esc(c.id) + '"><div class="t"><div><b>' + esc(c.nombre) + '</b> <span class="s">con ' + esc(c.profesorNombre || '—') + '</span>' +
         (!c.activo ? '<span class="gs-tag">inactivo</span>' : c.ofrecer ? '<span class="gs-tag ok">se ofrece</span>' : '<span class="gs-tag">no se ofrece</span>') +
+        (c.prueba && c.activo ? '<span class="gs-tag ok">prueba gratis</span>' : '') +
         (c.pedidos ? '<span class="gs-tag av">' + c.pedidos + ' pedido' + (c.pedidos === 1 ? '' : 's') + '</span>' : '') +
         '<div class="s">' + esc(c.horario) + (c.proxima ? ' · próxima: ' + esc(c.proxima) : c.frecuencia === 'Quincenal' ? ' · falta la fecha de la primera clase' : '') + '</div>' +
         '<div class="s">Socios ' + esc(c.precioSocioTxt) + ' · No socios ' + esc(c.precioNoSocioTxt) + '</div></div>' +
@@ -139,6 +140,7 @@
       '<div class="fila2"><div><label>Cupo (vacío = sin límite)</label><input id="cuCupo" type="number" min="0" step="1" value="' + (cu.cupo || '') + '"></div><div></div></div>' +
       '<label>Descripción para los socios (opcional)</label><input id="cuDesc" maxlength="300" value="' + esc(cu.descripcion || '') + '" placeholder="Ej.: para chicos de 8 a 12 años que ya saben mover las piezas">' +
       '<label class="chk"><input type="checkbox" id="cuOf"' + (cu.ofrecer ? ' checked' : '') + '> Ofrecerlo a los socios en la app</label>' +
+      '<label class="chk"><input type="checkbox" id="cuPrueba"' + (cu.prueba ? ' checked' : '') + '> Ofrece una clase de prueba gratis</label>' +
       '<label class="chk"><input type="checkbox" id="cuAct"' + (cu.activo !== false ? ' checked' : '') + '> Curso activo (si lo desactivás no se generan cuotas)</label>' +
       '<div class="fila2"><button class="btn" id="cuGuardar" type="button">Guardar</button><button class="btn sec" id="cuCancel" type="button">Cancelar</button></div><div class="error" id="cuErr"></div>';
     f.querySelector('#cuFrec').onchange = function () { f.querySelector('#cuIniB').classList.toggle('oculto', this.value !== 'Quincenal'); };
@@ -147,27 +149,56 @@
       var b = this; f.querySelector('#cuErr').textContent = ''; ocupado(b, true, 'Guardando…');
       api('adminGuardarCurso', token, { id: cu.id, nombre: $q('#cuNom').value, profesor: $q('#cuProf').value, dia: $q('#cuDia').value, frecuencia: $q('#cuFrec').value,
         inicio: $q('#cuIni').value, desde: $q('#cuDesde').value, hasta: $q('#cuHasta').value, precioSocio: $q('#cuPS').value, precioNoSocio: $q('#cuPN').value,
-        cupo: $q('#cuCupo').value, descripcion: $q('#cuDesc').value, ofrecer: $q('#cuOf').checked, activo: $q('#cuAct').checked })
+        cupo: $q('#cuCupo').value, descripcion: $q('#cuDesc').value, ofrecer: $q('#cuOf').checked, activo: $q('#cuAct').checked, prueba: $q('#cuPrueba').checked })
         .then(function () { toast('Curso guardado'); abrirClases('cursos'); })
         .catch(function (e) { f.querySelector('#cuErr').textContent = msg(e); }).then(function () { ocupado(b, false); });
     };
     f.scrollIntoView({ behavior: 'smooth' });
   }
 
-  /* ================= Pedidos ================= */
+  /* ================= Pedidos y clases de prueba ================= */
   function vPedidos() {
-    var c = cuerpo('vClases', '<div class="card"><h3>Pedidos de inscripción</h3>' + (D.pedidos.length ? D.pedidos.map(function (p) {
-      return '<div class="gs-item" data-id="' + esc(p.id) + '"><div><b>' + esc(p.nombre) + '</b> <span class="s">Nº ' + esc(p.nro) + '</span>' +
-        (!p.alDia ? '<span class="gs-tag mal">debe cuota social ' + esc(p.deudaTxt) + '</span>' : '') + (p.lleno ? '<span class="gs-tag av">cupo lleno ' + esc(p.cupoTxt) + '</span>' : '') +
+    var ins = D.pedidos.filter(function (p) { return p.tipo === 'Pedido'; });
+    var pru = D.pedidos.filter(function (p) { return p.tipo === 'Prueba'; }), agen = D.pedidos.filter(function (p) { return p.tipo === 'PruebaAgendada'; });
+    var item = function (p) {
+      var ops = p.tipo === 'Pedido' ? '<button class="link peRech" type="button">Rechazar</button><button class="link peOk" type="button"><b>Aprobar</b></button>' :
+        p.tipo === 'Prueba' ? '<button class="link peRech" type="button">Rechazar</button><button class="link peAgendar" type="button"><b>Agendar</b></button>' :
+        '<button class="link peAgendar" type="button">Cambiar fecha</button><button class="link peNo" type="button">No siguió</button><button class="link peSi" type="button"><b>Se anotó</b></button>';
+      return '<div class="gs-item" data-id="' + esc(p.id) + '"><div><b>' + esc(p.nombre) + '</b> <span class="s">' + (p.nro ? 'Nº ' + esc(p.nro) : 'no socio' + (p.telefono ? ' · ' + esc(p.telefono) : '')) + '</span>' +
+        (!p.alDia ? '<span class="gs-tag mal">debe cuota social ' + esc(p.deudaTxt) + '</span>' : '') + (p.lleno && p.tipo === 'Pedido' ? '<span class="gs-tag av">cupo lleno ' + esc(p.cupoTxt) + '</span>' : '') +
+        (p.tipo === 'PruebaAgendada' ? '<span class="gs-tag ok">prueba el ' + esc(p.fechaPrueba.slice(0, 5)) + '</span>' : '') +
         '<div class="s">' + esc(p.curso) + ' · ' + esc(p.horario) + '</div><div class="s">Pidió el ' + esc(p.fecha) + (p.comentario ? ' · "' + esc(p.comentario) + '"' : '') + '</div></div>' +
-        '<div class="ops"><button class="link peRech" type="button">Rechazar</button><button class="link peOk" type="button"><b>Aprobar</b></button></div></div>';
-    }).join('') : '<div class="muted">No hay pedidos pendientes 👌</div>') + '</div>');
+        '<div class="ops">' + ops + '</div></div>';
+    };
+    var bloque = function (tit, l, vacio) { return '<div class="card"><h3>' + tit + '</h3>' + (l.length ? l.map(item).join('') : '<div class="muted">' + vacio + '</div>') + '</div>'; };
+    var c = cuerpo('vClases', bloque('Pedidos de inscripción', ins, 'No hay pedidos pendientes 👌') + bloque('Clases de prueba pedidas', pru, 'No hay pedidos de clase de prueba.') +
+      bloque('Clases de prueba agendadas', agen, 'No hay clases de prueba agendadas.') + '<p class="muted">Después de la clase de prueba marcá si se anotó (queda inscripto) o si no siguió. Para anotar a alguien a una prueba a mano (también no socios) usá "Anotar alumno" en Alumnos y pagos.</p>');
     c.onclick = function (ev) {
       var row = ev.target.closest('.gs-item'); if (!row) return;
       var p = D.pedidos.filter(function (x) { return x.id === row.dataset.id; })[0];
-      if (ev.target.closest('.peOk')) resolverPedido(p, true, function () { abrirClases('pedidos'); });
-      else if (ev.target.closest('.peRech')) resolverPedido(p, false, function () { abrirClases('pedidos'); });
+      var luego = function () { abrirClases('pedidos'); };
+      if (ev.target.closest('.peOk')) resolverPedido(p, true, luego);
+      else if (ev.target.closest('.peRech')) resolverPedido(p, false, luego);
+      else if (ev.target.closest('.peAgendar')) agendarPrueba(p, luego);
+      else if (ev.target.closest('.peSi')) resultadoPrueba(p, true, luego);
+      else if (ev.target.closest('.peNo')) resultadoPrueba(p, false, luego);
     };
+  }
+  function agendarPrueba(p, luego) {
+    modal('<p><b>Clase de prueba de ' + esc(p.nombre) + '</b><br><span class="muted">' + esc(p.curso) + ' · ' + esc(p.horario) + '</span></p><label>Día</label><input type="date" id="peFecha" value="' + esc(p.fechaPruebaIso || p.proximaIso || '') + '">' +
+      '<p class="muted">Le avisamos al celular el día y la hora.</p>',
+      [{ txt: 'Cancelar', clase: 'sec' }, { txt: 'Agendar', clase: 'si', fn: function () {
+        api('adminAgendarPrueba', token, p.id, document.getElementById('peFecha').value).then(function () { toast('Clase de prueba agendada'); luego(); }).catch(function (e) { toast(msg(e)); });
+      } }]);
+  }
+  function resultadoPrueba(p, seQueda, luego) {
+    if (seQueda) modal('<p><b>' + esc(p.nombre) + ' se anota en ' + esc(p.curso) + '</b></p><label class="chk"><input type="checkbox" id="peCob" checked> Cobrarle la cuota de este mes</label>',
+      [{ txt: 'Cancelar', clase: 'sec' }, { txt: 'Anotar', clase: 'si', fn: function () {
+        api('adminResultadoPrueba', token, p.id, true, document.getElementById('peCob').checked).then(function () { toast('Alumno inscripto'); luego(); }).catch(function (e) { toast(msg(e)); });
+      } }]);
+    else confirmar('¿' + esc(p.nombre) + ' no siguió después de la clase de prueba?', 'No siguió', function () {
+      api('adminResultadoPrueba', token, p.id, false).then(function () { toast('Listo'); luego(); }).catch(function (e) { toast(msg(e)); });
+    });
   }
   function resolverPedido(p, aprobar, luego) {
     if (aprobar) {
@@ -221,6 +252,7 @@
       if (!filtroCurso) L.cursos = L.cursos.filter(function (c) { return c.alumnos.length; });
       ultimaLista = L;
       var chip = function (a) {
+        if (a.mes === 'Prueba') return '<span class="gs-tag av">clase de prueba ' + esc(a.fechaPrueba.slice(0, 5)) + '</span>';
         return a.mes === 'Pagada' ? '<span class="gs-tag ok">' + esc(L.legible.split(' ')[0]) + ' pagada</span>' : a.mes === 'Avisado' ? '<span class="gs-tag av">pago avisado</span>' :
           a.mes === 'Pendiente' ? '<span class="gs-tag mal">' + esc(L.legible.split(' ')[0]) + ' sin pagar</span>' : '<span class="gs-tag">sin cuota este mes</span>';
       };
@@ -236,7 +268,7 @@
               return '<div class="cl-al" data-al="' + esc(a.id) + '"><div><b>' + esc(a.nombre) + '</b> <span class="s">' + (a.socio ? 'Nº ' + esc(a.nro) : 'no socio') + '</span>' +
                 (a.estado === 'Baja' ? '<span class="gs-tag">de baja</span>' : '') + '<div class="s">' + esc(a.precioTxt) + (a.telefono ? ' · ' + esc(a.telefono) : '') + '</div>' + chip(a) + '</div>' +
                 '<div class="r"><b' + (a.deuda ? ' style="color:var(--mal)"' : '') + '>' + esc(a.deudaTxt) + '</b><div class="s">debe</div><div class="ops">' +
-                (a.pendientes.length ? '<button class="link alPagar" type="button">Cobrar</button>' : '') + '<button class="link alMas" type="button">Más</button></div></div></div>';
+                (a.pendientes.length ? '<button class="link alPagar" type="button">Cobrar</button>' : '') + (a.estado === 'PruebaAgendada' ? '' : '<button class="link alMas" type="button">Más</button>') + '</div></div></div>';
             }).join('') : '<div class="muted">Sin alumnos.</div>') + '</div>';
         }).join('') + (L.cursos.length ? '' : '<div class="card muted">No hay alumnos anotados.</div>');
     }).catch(function (e) { res.innerHTML = '<div class="error">' + esc(msg(e)) + '</div>'; });
@@ -275,17 +307,23 @@
       '<div class="radio-fila"><label><input type="radio" name="caTipo" value="s" checked> Socio</label><label><input type="radio" name="caTipo" value="n"> No socio</label></div>' +
       '<div id="caSoc"><input id="caBus" placeholder="Buscar socio por nombre o Nº"><div class="sel-res oculto" id="caRes"></div><div class="muted" id="caElegido"></div></div>' +
       '<div id="caNo" class="oculto"><label>Nombre y apellido</label><input id="caNom" maxlength="80"><div class="fila2"><div><label>Teléfono</label><input id="caTel" inputmode="tel"></div><div><label>Email</label><input id="caMail" type="email"></div></div></div>' +
-      '<label>Cuota especial (opcional; 0 = becado)</label><input id="caPre" type="number" min="0" step="100">' +
-      '<label class="chk"><input type="checkbox" id="caCob" checked> Cobrarle la cuota de este mes</label><div class="error" id="caErr"></div>',
+      '<label>¿Qué hace?</label><div class="radio-fila"><label><input type="radio" name="caModo" value="i" checked> Se inscribe</label><label><input type="radio" name="caModo" value="p"> Clase de prueba gratis</label></div>' +
+      '<div id="caIns"><label>Cuota especial (opcional; 0 = becado)</label><input id="caPre" type="number" min="0" step="100">' +
+      '<label class="chk"><input type="checkbox" id="caCob" checked> Cobrarle la cuota de este mes</label></div>' +
+      '<div id="caPru" class="oculto"><label>Día de la clase de prueba</label><input type="date" id="caFP"></div><div class="error" id="caErr"></div>',
       [{ txt: 'Cancelar', clase: 'sec' }, { txt: 'Anotar', clase: 'si', fn: function () {
         var no = document.querySelector('input[name=caTipo]:checked').value === 'n';
         var d = no ? { nombre: document.getElementById('caNom').value, telefono: document.getElementById('caTel').value, email: document.getElementById('caMail').value } : { nro: elegido };
         d.precio = document.getElementById('caPre').value;
+        if (document.querySelector('input[name=caModo]:checked').value === 'p') { d.prueba = true; d.fechaPrueba = document.getElementById('caFP').value; }
         if (!no && !elegido) { toast('Elegí el socio'); return; }
         api('adminAltaAlumno', token, document.getElementById('caCur').value, d, document.getElementById('caCob').checked)
-          .then(function (r) { toast('Alumno anotado' + (r.cargos ? ' (con la cuota de este mes)' : '')); cargarLista(); }).catch(function (e) { toast(msg(e)); });
+          .then(function (r) { toast(r.prueba ? 'Clase de prueba agendada' : 'Alumno anotado' + (r.cargos ? ' (con la cuota de este mes)' : '')); cargarLista(); }).catch(function (e) { toast(msg(e)); });
       } }]);
     var elegido = '';
+    var fechaDe = function () { var cu = D.cursos.filter(function (x) { return x.id === document.getElementById('caCur').value; })[0]; document.getElementById('caFP').value = cu ? (cu.proximaIso || '') : ''; };
+    fechaDe(); document.getElementById('caCur').onchange = fechaDe;
+    document.querySelectorAll('input[name=caModo]').forEach(function (r) { r.onchange = function () { var pr = this.value === 'p'; document.getElementById('caIns').classList.toggle('oculto', pr); document.getElementById('caPru').classList.toggle('oculto', !pr); }; });
     document.querySelectorAll('input[name=caTipo]').forEach(function (r) { r.onchange = function () { var no = this.value === 'n'; document.getElementById('caSoc').classList.toggle('oculto', no); document.getElementById('caNo').classList.toggle('oculto', !no); }; });
     document.getElementById('caBus').oninput = function () {
       var q = sinAcentos(this.value.trim()), res = document.getElementById('caRes');
@@ -314,7 +352,7 @@
         '<table><tr><th>#</th><th>Alumno</th><th>Socio</th><th>Teléfono</th><th>' + esc(L.legible) + '</th><th>Debe</th><th colspan="5">Asistencia</th></tr>' +
         (c.alumnos.length ? c.alumnos.map(function (a, i) {
           return '<tr><td>' + (i + 1) + '</td><td>' + esc(a.nombre) + (a.estado === 'Baja' ? ' (baja)' : '') + '</td><td>' + (a.socio ? 'Nº ' + esc(a.nro) : 'No') + '</td><td>' + esc(a.telefono) + '</td>' +
-            '<td class="' + (a.mes === 'Pagada' ? 'ok' : a.mes === 'Pendiente' ? 'mal' : '') + '">' + esc(a.mes === 'Pagada' ? 'Pagada' : a.mes === 'Avisado' ? 'Avisó pago' : a.mes === 'Pendiente' ? 'Debe ' + a.mesMonto : '—') + '</td>' +
+            '<td class="' + (a.mes === 'Pagada' ? 'ok' : a.mes === 'Pendiente' ? 'mal' : '') + '">' + esc(a.mes === 'Pagada' ? 'Pagada' : a.mes === 'Avisado' ? 'Avisó pago' : a.mes === 'Pendiente' ? 'Debe ' + a.mesMonto : a.mes === 'Prueba' ? 'Prueba ' + a.fechaPrueba.slice(0, 5) : '—') + '</td>' +
             '<td class="n' + (a.deuda ? ' mal' : '') + '">' + esc(a.deudaTxt) + '</td><td class="a"></td><td class="a"></td><td class="a"></td><td class="a"></td><td class="a"></td></tr>';
         }).join('') : '<tr><td colspan="11">Sin alumnos</td></tr>') + '</table>';
     });
@@ -383,9 +421,10 @@
       if (nBase !== null) marcarPrev(nBase + nCl);
       if (!nCl) return;
       var vacio = $('aLista').querySelector('.card.muted'); if (vacio) vacio.remove();
-      cont.innerHTML = (r.pedidos.length ? '<h3 style="margin-top:18px">Clases: pedidos de inscripción</h3>' + r.pedidos.map(function (p) {
-        return '<div class="aviso" data-pe="' + esc(p.id) + '"><b>' + esc(p.nombre) + '</b> (Nº ' + esc(p.nro) + ') — ' + esc(p.fecha) + '<br>Quiere anotarse en ' + esc(p.curso) + ' · ' + esc(p.horario) +
-          (p.comentario ? '<br><i>"' + esc(p.comentario) + '"</i>' : '') + '<div class="acc"><button class="clPeNo">Rechazar</button><button class="si clPeSi">Aprobar</button></div></div>';
+      cont.innerHTML = (r.pedidos.length ? '<h3 style="margin-top:18px">Clases: pedidos de inscripción y de prueba</h3>' + r.pedidos.map(function (p) {
+        var pr = p.tipo === 'Prueba';
+        return '<div class="aviso" data-pe="' + esc(p.id) + '"><b>' + esc(p.nombre) + '</b> (Nº ' + esc(p.nro) + ') — ' + esc(p.fecha) + '<br>' + (pr ? '🎁 Quiere probar una clase gratis de ' : 'Quiere anotarse en ') + esc(p.curso) + ' · ' + esc(p.horario) +
+          (p.comentario ? '<br><i>"' + esc(p.comentario) + '"</i>' : '') + '<div class="acc"><button class="clPeNo">Rechazar</button><button class="si ' + (pr ? 'clPeAg">Agendar' : 'clPeSi">Aprobar') + '</button></div></div>';
       }).join('') : '') +
         (r.pagos.length ? '<h3 style="margin-top:18px">Clases: pagos avisados</h3>' + r.pagos.map(function (p, i) {
           return '<div class="aviso" data-pg="' + i + '"><b>' + esc(p.nombre) + '</b> (Nº ' + esc(p.nro) + ') — ' + esc(p.fecha) + '<br>Pagó ' + esc(p.totalTxt) + ' por ' + esc(p.medio) + ': ' + esc(p.detalle) +
@@ -397,7 +436,8 @@
         var pe = ev.target.closest('[data-pe]'), pg = ev.target.closest('[data-pg]');
         if (pe) {
           var p = r.pedidos.filter(function (x) { return x.id === pe.dataset.pe; })[0];
-          resolverPedido({ id: p.id, nombre: p.nombre, curso: p.curso }, b.classList.contains('clPeSi'), cargarAvisos);
+          if (b.classList.contains('clPeAg')) agendarPrueba({ id: p.id, nombre: p.nombre, curso: p.curso, horario: p.horario, proximaIso: p.proximaIso }, cargarAvisos);
+          else resolverPedido({ id: p.id, nombre: p.nombre, curso: p.curso }, b.classList.contains('clPeSi'), cargarAvisos);
         } else if (pg) {
           var x = r.pagos[Number(pg.dataset.pg)];
           if (b.classList.contains('clPgSi')) confirmar('¿Llegó el pago de ' + esc(x.totalTxt) + '?', 'Confirmar', function () {
@@ -410,6 +450,57 @@
       };
     }).catch(function (e) { console.warn('avisos clases', e); });
   };
+
+  /* ================= Grupos: cargar varios socios de una vez ================= */
+  var gLista = document.getElementById('gLista');
+  if (gLista) {
+    new MutationObserver(function () {
+      gLista.querySelectorAll('.grp').forEach(function (row) {
+        if (row.querySelector('.gSoc')) return;
+        var b = document.createElement('button'); b.className = 'mini gSoc'; b.type = 'button'; b.textContent = 'socios'; b.style.color = 'var(--azul)';
+        row.insertBefore(b, row.querySelector('.gEdit'));
+      });
+    }).observe(gLista, { childList: true });
+    gLista.addEventListener('click', function (ev) {
+      if (!ev.target.classList.contains('gSoc')) return;
+      ev.stopPropagation();
+      sociosDelGrupo(ev.target.closest('.grp').dataset.g);
+    }, true);
+  }
+  function sociosDelGrupo(grupo) {
+    api('adminSociosDeGrupo', token, grupo).then(function (r) {
+      var sel = {}; r.socios.forEach(function (s) { if (s.en) sel[s.nro] = true; });
+      modal('<p><b>Socios del grupo "' + esc(r.grupo) + '"</b> <span class="muted" id="gsCuenta"></span></p>' +
+        '<input id="gsBus" placeholder="Buscar por nombre o Nº">' +
+        '<div class="chips" style="padding-top:8px"><button type="button" class="chip" data-r="fem">+ Todas las mujeres</button><button type="button" class="chip" data-r="masc">+ Todos los hombres</button>' +
+        '<button type="button" class="chip" data-r="65">+ 65 años o más</button><button type="button" class="chip" data-r="menor">+ Menores de 18</button><button type="button" class="chip" data-r="nadie">Sacar a todos</button></div>' +
+        '<div id="gsLis" style="max-height:46vh;overflow-y:auto;border:1px solid var(--linea);border-radius:10px;margin-top:8px;padding:0 10px"></div>' +
+        '<p class="muted">Los descuentos del grupo se aplican en las cuotas que se generen de acá en adelante.</p>',
+        [{ txt: 'Cancelar', clase: 'sec' }, { txt: 'Guardar', clase: 'si', fn: function () {
+          api('adminSociosGrupo', token, r.grupo, Object.keys(sel)).then(function (x) {
+            toast('Grupo actualizado: ' + x.agregados + ' agregado' + (x.agregados === 1 ? '' : 's') + ', ' + x.quitados + ' sacado' + (x.quitados === 1 ? '' : 's'));
+            var det = document.getElementById('gDet'); if (det) { det.open = false; setTimeout(function () { det.open = true; }, 50); }
+          }).catch(function (e) { toast(msg(e)); });
+        } }]);
+      var pintar = function () {
+        var q = sinAcentos(document.getElementById('gsBus').value.trim());
+        document.getElementById('gsLis').innerHTML = r.socios.filter(function (s) { return !q || s.nro === q || sinAcentos(s.nombre).indexOf(q) >= 0; }).map(function (s) {
+          return '<label class="chk" style="border-top:1px solid var(--linea);margin:0;padding:8px 0"><input type="checkbox" value="' + esc(s.nro) + '"' + (sel[s.nro] ? ' checked' : '') + '> ' + esc(s.nombre) +
+            ' <span class="muted">Nº ' + esc(s.nro) + (s.genero ? ' · ' + esc(s.genero) : '') + (s.edad !== null ? ' · ' + s.edad + ' años' : '') + (s.estado !== 'Activo' ? ' · ' + esc(s.estado) : '') + '</span></label>';
+        }).join('') || '<div class="muted" style="padding:8px 0">Sin resultados</div>';
+        document.getElementById('gsCuenta').textContent = '· ' + Object.keys(sel).length + ' elegidos';
+      };
+      pintar();
+      document.getElementById('gsBus').oninput = pintar;
+      document.getElementById('gsLis').onchange = function (ev) { if (ev.target.checked) sel[ev.target.value] = true; else delete sel[ev.target.value]; pintar(); };
+      document.querySelector('#modalCaja .chips').onclick = function (ev) {
+        var b = ev.target.closest('[data-r]'); if (!b) return;
+        var f = { fem: function (s) { return s.genero === 'Femenino'; }, masc: function (s) { return s.genero === 'Masculino'; }, '65': function (s) { return s.edad !== null && s.edad >= 65; }, menor: function (s) { return s.edad !== null && s.edad < 18; } }[b.dataset.r];
+        if (b.dataset.r === 'nadie') sel = {}; else r.socios.forEach(function (s) { if (f(s)) sel[s.nro] = true; });
+        pintar();
+      };
+    }).catch(function (e) { toast(msg(e)); });
+  }
 
   /* ================= Beneficios ================= */
   var BEN = [];

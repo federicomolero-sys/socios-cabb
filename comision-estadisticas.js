@@ -283,7 +283,7 @@
     });
 
     // Ingresos
-    var ing = B.map(function () { return { cuotas: 0, nCuotas: 0, eventos: 0, nEventos: 0, descontado: 0 }; });
+    var ing = B.map(function () { return { cuotas: 0, nCuotas: 0, eventos: 0, nEventos: 0, clases: 0, nClases: 0, descontado: 0 }; });
     var cuotasR = [];
     D.cuotas.forEach(function (c) {
       if (!c[6] || !ok[c[0]]) return;
@@ -297,10 +297,28 @@
       var i = idx[claveDe(e[1])]; if (i === undefined) return;
       ing[i].eventos += e[2]; ing[i].nEventos++;
     });
+    // Clases: cobros por curso y clases de prueba
+    var porCurso = {}, pruebas = { total: 0, anotados: 0, noSiguieron: 0, pendientes: 0, porCurso: {} };
+    (D.clases || []).forEach(function (c) {
+      if (!c[1]) return;
+      if (c[0] ? !ok[c[0]] : hayFiltro()) return;
+      var i = idx[claveDe(c[1])]; if (i === undefined) return;
+      ing[i].clases += c[2]; ing[i].nClases++;
+      var k = porCurso[c[3]] = porCurso[c[3]] || { curso: c[3], profesor: c[4], cobrado: 0, n: 0 };
+      k.cobrado += c[2]; k.n++;
+    });
+    (D.pruebas || []).forEach(function (pr) {
+      if (!pr[0] || pr[0] < desdeR || pr[0] > hastaR || pr[2] === 'Cancelada') return;
+      if (pr[3] ? !ok[pr[3]] : hayFiltro()) return;
+      pruebas.total++;
+      if (pr[2] === 'Se anotó') pruebas.anotados++; else if (pr[2] === 'No siguió') pruebas.noSiguieron++; else pruebas.pendientes++;
+      var q = pruebas.porCurso[pr[1]] = pruebas.porCurso[pr[1]] || { total: 0, anotados: 0 };
+      q.total++; if (pr[2] === 'Se anotó') q.anotados++;
+    });
 
     // Movimientos del historial en el rango
     var movs = D.historial.filter(function (h) { return ok[h[1]] && h[0] >= desdeR && h[0] <= hastaR; }).sort(function (a, b) { return a[0] < b[0] ? 1 : -1; });
-    return { B: B, socios: socios, flu: flu, ing: ing, cuotasR: cuotasR, movs: movs };
+    return { B: B, socios: socios, flu: flu, ing: ing, cuotasR: cuotasR, movs: movs, porCurso: porCurso, pruebas: pruebas };
   }
 
   function desglose(cuotasR, por) {
@@ -382,12 +400,33 @@
     html += '<div class="card"><h3>Ingresos · ' + esc(titPer) + '</h3>' +
       grafBarras(lbl, [
         { name: 'Cuotas', color: C.s1, values: R.ing.map(function (x) { return x.cuotas; }) },
-        { name: 'Eventos', color: C.s2, values: R.ing.map(function (x) { return x.eventos; }) }
+        { name: 'Eventos', color: C.s2, values: R.ing.map(function (x) { return x.eventos; }) },
+        { name: 'Clases', color: C.s3, values: R.ing.map(function (x) { return x.clases; }) }
       ], { titulo: 'Ingresos', fmt: fmtPlataEje, tipCab: function (i) { return esc(R.B[i].l) + (est.vista === 'mes' ? ' ' + est.anio : ''); } }) +
-      tabla(['', 'Cuotas', 'Eventos', 'Total', 'Descontado'], R.B.map(function (b, i) {
-        var x = R.ing[i]; return [b.l, plata(x.cuotas), plata(x.eventos), plata(x.cuotas + x.eventos), x.descontado ? plata(x.descontado) : '—'];
-      }), (function () { var t = R.ing.reduce(function (a, x) { a[0] += x.cuotas; a[1] += x.eventos; a[2] += x.descontado; return a; }, [0, 0, 0]); return ['Total', plata(t[0]), plata(t[1]), plata(t[0] + t[1]), t[2] ? plata(t[2]) : '—']; })()) +
+      tabla(['', 'Cuotas', 'Eventos', 'Clases', 'Total', 'Descontado'], R.B.map(function (b, i) {
+        var x = R.ing[i]; return [b.l, plata(x.cuotas), plata(x.eventos), plata(x.clases), plata(x.cuotas + x.eventos + x.clases), x.descontado ? plata(x.descontado) : '—'];
+      }), (function () { var t = R.ing.reduce(function (a, x) { a[0] += x.cuotas; a[1] += x.eventos; a[2] += x.descontado; a[3] += x.clases; return a; }, [0, 0, 0, 0]); return ['Total', plata(t[0]), plata(t[1]), plata(t[3]), plata(t[0] + t[1] + t[3]), t[2] ? plata(t[2]) : '—']; })()) +
       '<div class="es-nota">Por fecha de cobro. "Descontado" es lo que se dejó de cobrar por descuentos en esas cuotas.' + (hayFiltro() ? ' Con filtros, los eventos cuentan solo lo pagado por socios que cumplen el filtro.' : '') + '</div></div>';
+
+    // 3b) Clases
+    var cursosAct = (D.clasesCursos || []);
+    var filasCur = Object.keys(R.porCurso).map(function (k) { return R.porCurso[k]; }).sort(function (a, b) { return b.cobrado - a.cobrado; });
+    var porProf = {};
+    filasCur.forEach(function (f) { porProf[f.profesor || 'Sin profesor'] = (porProf[f.profesor || 'Sin profesor'] || 0) + f.cobrado; });
+    var pr = R.pruebas;
+    if (cursosAct.length || filasCur.length || pr.total) {
+      html += '<div class="card"><h3>Clases · ' + esc(titPer) + '</h3>' +
+        (filasCur.length ? tabla(['Curso', 'Cuotas cobradas', 'Cobrado'], filasCur.map(function (f) { return [f.curso, f.n, plata(f.cobrado)]; }),
+          ['Total', filasCur.reduce(function (a, f) { return a + f.n; }, 0), plata(filasCur.reduce(function (a, f) { return a + f.cobrado; }, 0))]) +
+          '<div class="es-nota">Por profesor: ' + Object.keys(porProf).map(function (k) { return esc(k) + ' ' + plata(porProf[k]); }).join(' · ') + '</div>'
+          : '<div class="muted">No hubo cobros de clases en este período.</div>') +
+        '<h3 style="margin-top:14px">Alumnos hoy</h3>' + (cursosAct.length ? tabla(['Curso', 'Socios', 'No socios', 'Total'], cursosAct.map(function (c) { return [c[0] + (c[4] ? '' : ' (inactivo)'), c[2], c[3], c[2] + c[3] + (c[5] ? ' / ' + c[5] : '')]; }),
+          ['Total', cursosAct.reduce(function (a, c) { return a + c[2]; }, 0), cursosAct.reduce(function (a, c) { return a + c[3]; }, 0), cursosAct.reduce(function (a, c) { return a + c[2] + c[3]; }, 0)]) : '<div class="muted">Sin cursos.</div>') +
+        '<h3 style="margin-top:14px">Clases de prueba</h3>' + (pr.total ? '<div class="es-kpis">' + kpi('Pruebas', pr.total, 'en el período') + kpi('Se anotaron', pr.anotados, pct(pr.anotados, pr.total) + ' de las pruebas') +
+          kpi('No siguieron', pr.noSiguieron, pr.pendientes ? pr.pendientes + ' todavía sin definir' : '') + '</div>' +
+          tabla(['Curso', 'Pruebas', 'Se anotaron', 'Conversión'], Object.keys(pr.porCurso).map(function (k) { var q = pr.porCurso[k]; return [k, q.total, q.anotados, pct(q.anotados, q.total)]; }))
+          : '<div class="muted">No hubo clases de prueba en este período.</div>') + '</div>';
+    }
 
     // 4) Desglose de cuotas
     var opcionesD = [['descuento', 'Descuento'], ['categoria', 'Categoría'], ['grupo', 'Grupo'], ['genero', 'Género'], ['edad', 'Edad'], ['medio', 'Medio de pago']];
@@ -445,9 +484,9 @@
       var R = ultimo, wb = X.utils.book_new();
       var hoja = function (filas, anchos) { var ws = X.utils.aoa_to_sheet(filas); ws['!cols'] = anchos.map(function (w) { return { wch: w }; }); return ws; };
       var per = est.vista === 'mes' ? 'Mes' : 'Año';
-      X.utils.book_append_sheet(wb, hoja([[per, 'Altas', 'Reactivaciones', 'Bajas', 'Suspensiones', 'Sanciones', 'Activos al cierre', 'Ingresos cuotas', 'Ingresos eventos', 'Total', 'Descontado']]
-        .concat(R.B.map(function (bk, i) { var f = R.flu[i], x = R.ing[i]; return [est.vista === 'mes' ? bk.l + ' ' + est.anio : bk.l, f.altas, f.react, f.bajas, f.susp, f.sanc, f.activos === null ? '' : f.activos, x.cuotas, x.eventos, x.cuotas + x.eventos, x.descontado]; })),
-        [12, 7, 14, 7, 12, 10, 16, 15, 15, 12, 12]), 'Por ' + per.toLowerCase());
+      X.utils.book_append_sheet(wb, hoja([[per, 'Altas', 'Reactivaciones', 'Bajas', 'Suspensiones', 'Sanciones', 'Activos al cierre', 'Ingresos cuotas', 'Ingresos eventos', 'Ingresos clases', 'Total', 'Descontado']]
+        .concat(R.B.map(function (bk, i) { var f = R.flu[i], x = R.ing[i]; return [est.vista === 'mes' ? bk.l + ' ' + est.anio : bk.l, f.altas, f.react, f.bajas, f.susp, f.sanc, f.activos === null ? '' : f.activos, x.cuotas, x.eventos, x.clases, x.cuotas + x.eventos + x.clases, x.descontado]; })),
+        [12, 7, 14, 7, 12, 10, 16, 15, 15, 15, 12, 12]), 'Por ' + per.toLowerCase());
       ['descuento', 'categoria', 'grupo', 'genero', 'edad', 'medio'].forEach(function (k) {
         var nom = { descuento: 'Descuento', categoria: 'Categoría', grupo: 'Grupo', genero: 'Género', edad: 'Edad', medio: 'Medio' }[k];
         X.utils.book_append_sheet(wb, hoja([[nom, 'Socios', 'Cuotas', 'Cobrado', 'Sin descuento sería', 'Descontado']].concat(
