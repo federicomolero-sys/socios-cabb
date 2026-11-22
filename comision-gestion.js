@@ -291,14 +291,16 @@
       else go();
     };
     api('adminSanciones', token).then(function (l) {
-      var vig = l.filter(function (x) { return x.estado === 'Vigente'; }), resto = l.filter(function (x) { return x.estado !== 'Vigente'; });
+      var activa = function (x) { return x.estado === 'Vigente' || (x.tipo === 'Apercibimiento' && x.estado === 'Registrada'); };
+      var vig = l.filter(activa), resto = l.filter(function (x) { return !activa(x); });
       var fila = function (x) {
-        var tag = x.estado === 'Vigente' ? '<span class="gs-tag mal">vigente</span>' : '<span class="gs-tag">' + esc(x.estado.toLowerCase()) + '</span>';
+        var tag = x.estado === 'Vigente' ? '<span class="gs-tag mal">vigente</span>' : x.estado === 'Registrada' ? '<span class="gs-tag mal">registrado</span>' : '<span class="gs-tag">' + esc(x.estado.toLowerCase()) + '</span>';
         var det = x.tipo === 'Suspensión' ? 'Del ' + esc(x.desde) + ' al ' + esc(x.hasta) + (x.conCuota ? ' · con cuota' : ' · sin cuota') :
           x.tipo === 'Multa' ? esc(x.montoTxt) + (x.multaEstado ? ' · ' + (x.multaEstado === 'Pagada' ? 'pagada' : x.multaEstado === 'Anulada' ? 'anulada' : 'sin pagar') : '') : esc(x.desde);
         return '<div class="gs-item" data-id="' + esc(x.id) + '" data-tipo="' + esc(x.tipo) + '"><div class="t"><div><b>' + esc(x.tipo) + '</b> · ' + esc(x.socio) + ' <span class="s">Nº ' + esc(x.nro) + '</span>' + tag +
           '<div class="s">' + det + '</div><div class="s">' + esc(x.motivo) + (x.usuario ? ' · ' + esc(x.usuario) : '') + '</div></div></div>' +
-          (x.estado === 'Vigente' ? '<div class="ops">' + (x.tipo === 'Suspensión' ? '<button class="link gsLevantar" type="button">Levantar suspensión</button>' : '') +
+          (activa(x) ? '<div class="ops">' + (x.tipo === 'Suspensión' ? '<button class="link gsLevantar" type="button">Levantar suspensión</button>' : '') +
+            (x.tipo === 'Apercibimiento' ? '<button class="link gsSinEfecto" type="button">Dejar sin efecto</button>' : '') +
             (x.tipo === 'Multa' && x.multaEstado === 'Pendiente' ? '<button class="link gsAnular" type="button">Anular multa</button>' : '') + '<button class="link" data-ficha="' + esc(x.nro) + '" type="button">Ver ficha</button></div>' : '') + '</div>';
       };
       q('#gsLista').innerHTML = l.length ? (vig.length ? vig.map(fila).join('') : '<div class="muted">No hay sanciones vigentes.</div>') +
@@ -307,11 +309,12 @@
       q('#gsLista').onclick = function (ev) {
         var f = ev.target.closest('[data-ficha]'); if (f) { abrirFicha(f.dataset.ficha, 'mas'); return; }
         var row = ev.target.closest('.gs-item'); if (!row) return;
-        var lev = ev.target.classList.contains('gsLevantar'), anu = ev.target.classList.contains('gsAnular');
-        if (!lev && !anu) return;
-        modal('<p><b>' + (lev ? '¿Levantar la suspensión? El socio vuelve a Activo hoy.' : '¿Anular la multa? Deja de figurar como deuda.') + '</b></p><label>Motivo (opcional)</label><input id="gsLevMot" maxlength="120">',
-          [{ txt: 'Cancelar', clase: 'sec' }, { txt: lev ? 'Levantar' : 'Anular', clase: 'si', fn: function () {
-            api('adminLevantarSancion', token, row.dataset.id, document.getElementById('gsLevMot').value, anu).then(function () { toast(lev ? 'Suspensión levantada' : 'Multa anulada'); abrir('sanciones'); }).catch(function (e) { toast(msg(e)); });
+        var lev = ev.target.classList.contains('gsLevantar'), anu = ev.target.classList.contains('gsAnular'), sin = ev.target.classList.contains('gsSinEfecto');
+        if (!lev && !anu && !sin) return;
+        var preg = lev ? '¿Levantar la suspensión? El socio vuelve a Activo hoy.' : anu ? '¿Anular la multa? Deja de figurar como deuda.' : '¿Dejar sin efecto el apercibimiento? Queda en el historial como "sin efecto".';
+        modal('<p><b>' + preg + '</b></p><label>Motivo (opcional)</label><input id="gsLevMot" maxlength="120">',
+          [{ txt: 'Cancelar', clase: 'sec' }, { txt: lev ? 'Levantar' : anu ? 'Anular' : 'Dejar sin efecto', clase: 'si', fn: function () {
+            api('adminLevantarSancion', token, row.dataset.id, document.getElementById('gsLevMot').value, anu).then(function () { toast(lev ? 'Suspensión levantada' : anu ? 'Multa anulada' : 'Apercibimiento sin efecto'); abrir('sanciones'); }).catch(function (e) { toast(msg(e)); });
           } }]);
       };
     }).catch(function (e) { q('#gsLista').innerHTML = '<div class="error">' + esc(msg(e)) + '</div>'; });
