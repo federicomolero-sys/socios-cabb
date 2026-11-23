@@ -25,6 +25,7 @@
       fila('Teléfono', d.telefono) + fila('Mail', d.email) + fila('Domicilio', d.domicilio) +
       fila('Categoría', d.categoria + (d.cuota ? ' · cuota mensual ' + d.cuota : '')) + fila('Fecha de alta', d.alta) + '</table>' +
       '<h2>Compromiso</h2><div class="texto">' + parrafos(d.compromiso) + '</div>' +
+      (d.estatuto ? '<div class="estat">Estatuto vigente: ' + e(d.estatuto.titulo) + (d.estatuto.vigencia ? ', versión de ' + e(d.estatuto.vigencia) : '') + '. Disponible en la app de socios (Perfil → Documentos).</div>' : '') +
       (String(d.normas || '').trim() ? '<h2>Normas de convivencia</h2><div class="texto normas">' + e(d.normas) + '</div>' : '') +
       '<div class="lugar">Bahía Blanca, ' + e(d.hoy) + '</div>' +
       '<div class="firmas' + (d.menor ? ' tres' : '') + '">' + firmas + '</div></section>';
@@ -48,7 +49,7 @@
       'table{width:100%;border-collapse:collapse}th{text-align:left;font-weight:400;color:#666;width:34%;padding:3px 0;vertical-align:bottom}td{padding:3px 0;font-weight:700;border-bottom:1px dotted #bbb}' +
       '.linea{display:inline-block;width:100%}' +
       '.texto p{margin:0 0 6px;text-align:justify}.normas{white-space:pre-line;font-size:9.8pt}' +
-      '.lugar{margin-top:14px}' +
+      '.lugar{margin-top:14px}.estat{font-size:9.5pt;font-style:italic;color:#444;border-left:3px solid #c9a85a;padding:3px 8px;margin:2px 0 4px}' +
       '.firmas{display:flex;gap:26px;margin-top:40px}.firma{flex:1;text-align:center;font-size:9.5pt}.firma .raya{border-top:1px solid #1d1d1b;margin-bottom:4px}' +
       '.firma b{display:block}.firma span{color:#666;font-size:8.5pt}.firmas.tres{gap:16px}' +
       '@media screen and (max-width:820px){.hoja{width:auto;min-height:0;margin:10px;padding:16px}}' +

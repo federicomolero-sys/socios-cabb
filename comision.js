@@ -377,7 +377,8 @@ $('fAlta').addEventListener('submit', function (ev) {
   api('adminAlta', token, d).then(function (r) {
     f.reset(); socios = [];
     var nombre = d.Nombre + ' ' + d.Apellido, wa = telWhatsApp(d.Telefono);
-    var texto = 'Hola ' + d.Nombre + ', ¡bienvenido/a al Círculo de Ajedrez! Ya podés ver tu carnet digital en https://federicomolero-sys.github.io/socios-cabb/ — entrás con tu DNI y la clave ' + r.clave;
+    var texto = 'Hola ' + d.Nombre + ', ¡bienvenido/a al Círculo de Ajedrez! Ya podés ver tu carnet digital en https://federicomolero-sys.github.io/socios-cabb/ — entrás con tu DNI y la clave ' + r.clave +
+      (r.estatuto ? '. Te compartimos también el Estatuto del Círculo: ' + r.estatuto + ' (lo tenés siempre en la app, en Perfil → Documentos).' : '');
     modal('<p><b>' + esc(nombre) + '</b> quedó como socio <b>Nº ' + r.nro + '</b>.</p><p>Clave inicial del portal:</p><div class="clave">' + esc(r.clave) + '</div><p class="muted">' +
       (r.emailEnviado ? 'Se la mandamos por mail.' : 'Pasásela por WhatsApp.') + ' Anotala: no se guarda.</p>' +
       (wa ? '<a class="btn verde" target="_blank" rel="noopener" href="https://wa.me/' + wa + '?text=' + encodeURIComponent(texto) + '">Mandar por WhatsApp</a>' : ''),
