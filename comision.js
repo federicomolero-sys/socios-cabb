@@ -381,7 +381,8 @@ $('fAlta').addEventListener('submit', function (ev) {
     modal('<p><b>' + esc(nombre) + '</b> quedó como socio <b>Nº ' + r.nro + '</b>.</p><p>Clave inicial del portal:</p><div class="clave">' + esc(r.clave) + '</div><p class="muted">' +
       (r.emailEnviado ? 'Se la mandamos por mail.' : 'Pasásela por WhatsApp.') + ' Anotala: no se guarda.</p>' +
       (wa ? '<a class="btn verde" target="_blank" rel="noopener" href="https://wa.me/' + wa + '?text=' + encodeURIComponent(texto) + '">Mandar por WhatsApp</a>' : ''),
-      [{ txt: 'Ver su ficha', fn: function () { abrirFicha(r.nro, 'socios'); } }]);
+      [{ txt: 'Imprimir ficha', clase: 'sec', fn: function () { if (window.imprimirFichaSocio) window.imprimirFichaSocio(r.nro); } },
+       { txt: 'Ver su ficha', fn: function () { abrirFicha(r.nro, 'socios'); } }]);
   }).catch(function (e) { $('eAlta').textContent = msg(e); })
     .then(function () { ocupado($('bAlta'), false); });
 });
