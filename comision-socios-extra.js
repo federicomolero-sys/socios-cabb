@@ -126,7 +126,7 @@
   bNuevo.addEventListener('click', function () {
     var b = bNuevo, err = document.getElementById('eEditar'); err.textContent = '';
     var datos = {
-      Apellido: $('eApellido').value, Nombre: $('eNombre').value, Email: $('eEmail').value, Telefono: $('eTelefono').value,
+      Apellido: $('eApellido').value, Nombre: $('eNombre').value, Email: $('eEmail').value, Telefono: $('eTelefono').value, Domicilio: $('eDomicilio').value,
       Categoria: $('eCategoria').value, Estado: $('eEstado').value, Observaciones: $('eObs').value,
       FechaNacimiento: $('eNac').value, Genero: $('eGenero').value, GrupoFamiliar: $('eFamilia').value.trim(),
       Grupos: gruposElegidos($('eGrupos')), DescIndividual: $('eDescInd').value.trim(), DescMotivo: $('eDescMot').value.trim(),

@@ -229,7 +229,7 @@ function pintarFicha(f) {
   }).join('') : '<div class="muted">Todavía no tiene cuotas.</div>';
 
   $('eApellido').value = f.apellido; $('eNombre').value = f.nombre; $('eEmail').value = f.email;
-  $('eTelefono').value = f.telefono; $('eObs').value = f.observaciones; $('eEstado').value = f.estado || 'Activo';
+  $('eTelefono').value = f.telefono; $('eDomicilio').value = f.domicilio || ''; $('eObs').value = f.observaciones; $('eEstado').value = f.estado || 'Activo';
   var cats = f.categorias.slice(); if (f.categoria && cats.indexOf(f.categoria) < 0) cats.push(f.categoria);
   $('eCategoria').innerHTML = cats.map(function (k) { return '<option' + (k === f.categoria ? ' selected' : '') + '>' + esc(k) + '</option>'; }).join('');
   $('aCategoria').innerHTML = f.categorias.map(function (k) { return '<option>' + esc(k) + '</option>'; }).join('');
@@ -286,7 +286,7 @@ $('bGuardar').addEventListener('click', function () {
   var b = $('bGuardar'); $('eEditar').textContent = '';
   ocupado(b, true, 'Guardando…');
   api('adminEditar', token, ficha.nro, {
-    Apellido: $('eApellido').value, Nombre: $('eNombre').value, Email: $('eEmail').value, Telefono: $('eTelefono').value,
+    Apellido: $('eApellido').value, Nombre: $('eNombre').value, Email: $('eEmail').value, Telefono: $('eTelefono').value, Domicilio: $('eDomicilio').value,
     Categoria: $('eCategoria').value, Estado: $('eEstado').value, Observaciones: $('eObs').value
   }).then(function () { toast('Datos guardados'); socios = []; abrirFicha(ficha.nro, vistaAnterior); })
     .catch(function (e) { $('eEditar').textContent = msg(e); })

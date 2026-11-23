@@ -22,7 +22,7 @@
       '<h2>Datos del socio</h2><table>' +
       fila('Apellido y nombre', d.apellido + ', ' + d.nombre) + fila('DNI', d.dni) +
       fila('Fecha de nacimiento', d.nacimiento ? d.nacimiento + (d.edad !== null && d.edad !== undefined ? ' (' + d.edad + ' años)' : '') : '') +
-      fila('Teléfono', d.telefono) + fila('Mail', d.email) + fila('Domicilio', '') +
+      fila('Teléfono', d.telefono) + fila('Mail', d.email) + fila('Domicilio', d.domicilio) +
       fila('Categoría', d.categoria + (d.cuota ? ' · cuota mensual ' + d.cuota : '')) + fila('Fecha de alta', d.alta) + '</table>' +
       '<h2>Compromiso</h2><div class="texto">' + parrafos(d.compromiso) + '</div>' +
       (String(d.normas || '').trim() ? '<h2>Normas de convivencia</h2><div class="texto normas">' + e(d.normas) + '</div>' : '') +
@@ -129,7 +129,7 @@
     if (t.closest('#fiPrevia')) {
       var w = abrirVentana(); if (!w) return;
       escribir(w, { club: 'Círculo de Ajedrez de Bahía Blanca', nro: 0, apellido: 'Ejemplo', nombre: 'Socio', dni: '00.000.000', nacimiento: '01/01/1990', edad: 36,
-        menor: false, telefono: '291 000-0000', email: 'socio@ejemplo.com', categoria: 'General', cuota: '', alta: '', hoy: new Date().toLocaleDateString('es-AR'),
+        menor: false, telefono: '291 000-0000', email: 'socio@ejemplo.com', domicilio: 'Calle Ejemplo 123, Bahía Blanca', categoria: 'General', cuota: '', alta: '', hoy: new Date().toLocaleDateString('es-AR'),
         compromiso: document.getElementById('fiComp').value, normas: document.getElementById('fiNorm').value });
       return;
     }
