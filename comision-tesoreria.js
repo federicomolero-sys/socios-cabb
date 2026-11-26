@@ -207,7 +207,11 @@
 
   /* ================= Caja ================= */
   var cCaja = tarjeta('tsCaja', '💰 Caja de tesorería');
-  var CJ = null, tipoMov = 'Egreso';
+  var CJ = null, tipoMov = 'Egreso', catAbierto = false;
+  function guardarCats(tipo, lista) {
+    return api('adminCajaCategorias', token, tipo, lista).then(function (cats) { CJ.categorias = cats; catAbierto = true; pintarCaja(); })
+      .catch(function (x) { toast(msg(x)); });
+  }
   function pintarCaja() {
     var r = CJ, a = r.auto;
     var opts = (r.categorias[tipoMov] || []).map(function (k) { return '<option>' + e(k) + '</option>'; }).join('');
@@ -231,6 +235,14 @@
         return '<div class="ts-it"><div><b>' + e(x.concepto) + '</b><div class="s">' + e(x.fecha) + (x.categoria ? ' · ' + e(x.categoria) : '') + (x.medio ? ' · ' + e(x.medio) : '') + ' · ' + e(x.usuario) +
           ' · <button class="mini" data-cborrar="' + e(x.id) + '">borrar</button></div></div><div class="m ' + (x.tipo === 'Egreso' ? 'ts-neg' : 'ts-pos') + '">' + (x.tipo === 'Egreso' ? '− ' : '+ ') + pesos(x.monto) + '</div></div>';
       }).join('') : '<div class="muted">Todavía no hay gastos ni otros ingresos cargados este mes.</div>') +
+      '<details id="tsCCatDet" style="margin-top:14px"' + (catAbierto ? ' open' : '') + '><summary style="cursor:pointer;font-weight:600">🏷️ Categorías de gastos e ingresos</summary>' +
+      '<div class="muted" style="margin-top:6px">Las que aparecen para elegir al cargar un movimiento. Si escribís una nueva al cargar, también queda guardada. Borrar una no cambia los movimientos ya cargados.</div>' +
+      [['Egreso', 'Gastos'], ['Ingreso', 'Otros ingresos']].map(function (t) {
+        return '<h4 style="margin:10px 0 4px">' + t[1] + '</h4><div class="gchips">' + (r.categorias[t[0]] || []).map(function (k, i) {
+          return '<span class="sel-chip">' + e(k) + ' <button type="button" data-cqt="' + t[0] + '" data-cqi="' + i + '" title="Borrar">✕</button></span>';
+        }).join(' ') + '</div><div style="display:flex;gap:6px;margin-top:6px"><input id="tsCNueva' + t[0] + '" maxlength="60" placeholder="Nueva categoría (ej.: Celular)" style="flex:1">' +
+          '<button class="btn sec" type="button" data-cqadd="' + t[0] + '" style="width:auto;margin:0">Agregar</button></div>';
+      }).join('') + '</details>' +
       '<h3 style="margin:14px 0 4px">Últimos 12 meses</h3><table class="ts-tabla"><tr><th>Mes</th><th>Ingresos</th><th>Egresos</th><th>Saldo</th></tr>' +
       r.meses.slice().reverse().map(function (m) { return '<tr><td>' + e(m.legible) + '</td><td>' + pesos(m.ingresos) + '</td><td>' + pesos(m.egresos) + '</td><td class="' + (m.saldo < 0 ? 'ts-neg' : '') + '">' + pesos(m.saldo) + '</td></tr>'; }).join('') + '</table>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sec" id="tsCImp" type="button">🖨️ Imprimir balance del mes</button><button class="btn sec" id="tsCCsv" type="button">⬇️ Descargar planilla (CSV)</button></div>');
@@ -240,7 +252,22 @@
   cCaja.addEventListener('change', function (ev) { if (ev.target.id === 'tsCMes' && ev.target.value) cargarCaja(ev.target.value); });
   cCaja.addEventListener('click', function (ev) {
     var t = ev.target;
-    if (t.dataset && t.dataset.tm) { tipoMov = t.dataset.tm; pintarCaja(); return; }
+    if (t.dataset && t.dataset.tm) { tipoMov = t.dataset.tm; catAbierto = !!($id('tsCCatDet') && $id('tsCCatDet').open); pintarCaja(); return; }
+    if (t.dataset && t.dataset.cqt) {
+      var lt = (CJ.categorias[t.dataset.cqt] || []).slice(), nom = lt[Number(t.dataset.cqi)];
+      confirmar('¿Borrar la categoría "' + e(nom) + '"? Los movimientos ya cargados no cambian.', 'Borrar', function () {
+        lt.splice(Number(t.dataset.cqi), 1); guardarCats(t.dataset.cqt, lt);
+      }, 'peligro');
+      return;
+    }
+    if (t.dataset && t.dataset.cqadd) {
+      var inp = $id('tsCNueva' + t.dataset.cqadd), v = inp.value.trim();
+      if (!v) { inp.focus(); return; }
+      var la = (CJ.categorias[t.dataset.cqadd] || []).slice();
+      if (la.some(function (x) { return x.toLowerCase() === v.toLowerCase(); })) { toast('Esa categoría ya existe'); return; }
+      la.push(v); guardarCats(t.dataset.cqadd, la).then(function () { toast('Categoría agregada'); });
+      return;
+    }
     if (t.id === 'tsCGuardar') {
       $id('tsCErr').textContent = ''; ocupado(t, true, 'Guardando…');
       api('adminCajaGuardar', token, { tipo: tipoMov, fecha: $id('tsCFecha').value, monto: $id('tsCMonto').value, categoria: $id('tsCCat').value, medio: $id('tsCMedio').value, concepto: $id('tsCConc').value })
