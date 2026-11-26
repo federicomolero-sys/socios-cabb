@@ -102,7 +102,8 @@ function pintar(d) {
     bd.className = 'card deuda' + (d.cantVencidas ? '' : ' ok');
     $('dTitulo').textContent = 'Saldo pendiente: ' + d.deuda;
     $('dTexto').textContent = d.cantPendientes + (d.cantPendientes === 1 ? ' cuota pendiente' : ' cuotas pendientes') +
-      (d.cantVencidas ? ' (' + d.cantVencidas + ' vencida' + (d.cantVencidas === 1 ? '' : 's') + ')' : ' (todavía no vencida)') + '.';
+      (d.cantVencidas ? ' (' + d.cantVencidas + ' vencida' + (d.cantVencidas === 1 ? '' : 's') + ')' : ' (todavía no vencida)') + '.' +
+      (d.proxRecargo && d.proxRecargo.texto ? ' ' + d.proxRecargo.texto : '');
   }
   $('dAviso').classList.toggle('oculto', !d.avisosPendientes);
   $('bAviso').classList.toggle('oculto', d.cantPendientes === 0);
@@ -129,6 +130,8 @@ function pintar(d) {
       if (c.estado === 'Pagada') { est = '<span class="est-Pagada">Pagada</span>'; det = 'Pagada el ' + c.pagada + (c.medio ? ' · ' + c.medio : ''); }
       else if (c.vencida) { est = '<span class="est-vencida">Vencida</span>'; det = 'Venció el ' + c.vence; }
       else { est = '<span class="est-Pendiente">Pendiente</span>'; det = 'Vence el ' + c.vence; }
+      if (c.recargo) det += ' · incluye recargo de ' + c.recargo;
+      if (c.condonado) det += ' · bonificados ' + c.condonado;
       return '<div class="cuota"><div><div>' + esc(c.legible) + '</div><div class="det">' + esc(det) + '</div></div>' +
              '<div class="monto">' + esc(c.monto) + '<br>' + est + '</div></div>';
     }).join('');
