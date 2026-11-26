@@ -39,7 +39,8 @@
   function selectorAlcance(cont, permitidos, inicial) {
     inicial = inicial || {};
     var est = { alcance: inicial.alcance || permitidos[0], sel: (inicial.destinos || []).slice() };
-    var NOMBRE = { Todos: 'Todos', Socios: 'Socios', Grupos: 'Grupos', Familias: 'Familias', 'Categorías': 'Categorías', 'Géneros': 'Géneros' };
+    var NOMBRE = { Todos: 'Todos', Socios: 'Socios', Grupos: 'Grupos', Familias: 'Familias', 'Categorías': 'Categorías', 'Géneros': 'Géneros', Nuevos: 'Socios nuevos' };
+    var mesesNuevos = 3;
     function lista() {
       if (est.alcance === 'Grupos') return OP.grupos;
       if (est.alcance === 'Familias') return OP.familias;
@@ -62,6 +63,9 @@
           var on = est.sel.indexOf(g) >= 0;
           return '<label class="gchip' + (on ? ' on' : '') + '"><input type="checkbox" value="' + esc(g) + '"' + (on ? ' checked' : '') + '>' + esc(g) + '</label>';
         }).join('') + '</div>' : '<div class="muted">No hay ' + esc(NOMBRE[est.alcance].toLowerCase()) + ' cargados.</div>';
+      } else if (est.alcance === 'Nuevos') {
+        h += '<div class="fila2"><div><label>Durante sus primeros</label><input class="sel-nuevos" type="number" min="1" max="24" value="' + mesesNuevos + '"></div><div style="align-self:end;padding-bottom:12px">meses</div></div>' +
+          '<div class="muted">Oferta de bienvenida: se aplica a quienes <b>se asocien</b> en los meses que elijas abajo, durante sus primeros meses como socios.</div>';
       } else h += '<div class="muted">Se aplica a todos los socios activos.</div>';
       cont.innerHTML = h;
     }
@@ -79,6 +83,7 @@
       est.sel = Array.prototype.map.call(cont.querySelectorAll('.gchips input:checked'), function (i) { return i.value; });
     });
     cont.addEventListener('input', function (ev) {
+      if (ev.target.classList.contains('sel-nuevos')) { mesesNuevos = Number(ev.target.value) || 0; return; }
       if (!ev.target.classList.contains('sel-buscar')) return;
       var q = sinAcentos(ev.target.value.trim()), res = cont.querySelector('.sel-res');
       if (!q) { res.classList.add('oculto'); return; }
@@ -87,7 +92,7 @@
       res.classList.remove('oculto');
     });
     pintar();
-    return { valor: function () { return { alcance: est.alcance, destinos: est.sel.join(', '), cantidad: est.sel.length }; } };
+    return { valor: function () { return est.alcance === 'Nuevos' ? { alcance: 'Nuevos', destinos: String(mesesNuevos), cantidad: 1 } : { alcance: est.alcance, destinos: est.sel.join(', '), cantidad: est.sel.length }; } };
   }
 
   /* ================= Vista ================= */
@@ -205,7 +210,7 @@
       '<label>Motivo</label><input id="gdMotivo" maxlength="80" placeholder="Ej.: Bonificación por organizar el torneo">' +
       '<button class="btn" id="gdCrear" type="button">Aplicar</button><div class="error" id="gdErr"></div></div>' +
       '<div class="card"><h3>Descuentos temporales vigentes</h3><div id="gdLista"></div><p class="muted">Los descuentos fijos (jubilados, damas, becados…) se manejan como grupos en Más → Grupos y descuentos.</p></div>');
-    var sel = selectorAlcance(q('#gdAlc'), ['Socios', 'Grupos', 'Familias', 'Categorías', 'Géneros', 'Todos'], { alcance: 'Socios', destinos: pre.nro ? [String(pre.nro)] : [] });
+    var sel = selectorAlcance(q('#gdAlc'), ['Socios', 'Grupos', 'Familias', 'Categorías', 'Géneros', 'Todos', 'Nuevos'], { alcance: 'Socios', destinos: pre.nro ? [String(pre.nro)] : [] });
     q('#gdDesde').value = OP.periodoActual; q('#gdHasta').value = OP.periodoActual;
     var v = new Date(); v.setDate(v.getDate() + 10); q('#gmVence').value = diaIso(v);
     function ponerTipo(t) {
@@ -237,7 +242,7 @@
         var varios = c.querySelector('input[name=gdVig]:checked').value === 'n';
         p = api('adminCrearDescuento', token, { alcance: a.alcance, destinos: a.destinos, tipo: q('#gdTipoV').value, valor: q('#gdValor').value,
           desde: q('#gdDesde').value, hasta: varios ? q('#gdHasta').value : q('#gdDesde').value, motivo: q('#gdMotivo').value })
-          .then(function (r) { modal('<p><b>Descuento aplicado a ' + r.socios + ' socio' + (r.socios === 1 ? '' : 's') + '.</b></p><p class="muted">Se aplica a las cuotas que se generen en esos meses' + (r.recalculadas ? ' y se recalcularon ' + r.recalculadas + ' cuotas pendientes ya generadas' : '') + '.</p>'); abrir('descuentos'); });
+          .then(function (r) { modal(a.alcance === 'Nuevos' ? '<p><b>Oferta para socios nuevos creada.</b></p><p class="muted">Se aplica sola a quienes se asocien en esos meses, durante sus primeros ' + a.destinos + ' meses.</p>' : '<p><b>Descuento aplicado a ' + r.socios + ' socio' + (r.socios === 1 ? '' : 's') + '.</b></p><p class="muted">Se aplica a las cuotas que se generen en esos meses' + (r.recalculadas ? ' y se recalcularon ' + r.recalculadas + ' cuotas pendientes ya generadas' : '') + '.</p>'); abrir('descuentos'); });
       } else {
         p = api('adminSancionar', token, { alcance: a.alcance, destinos: a.destinos, tipo: 'Multa', monto: q('#gmMonto').value, vence: q('#gmVence').value, motivo: q('#gdMotivo').value })
           .then(function (r) { modal('<p><b>Multa aplicada a ' + r.socios + ' socio' + (r.socios === 1 ? '' : 's') + '.</b></p><p class="muted">Les aparece como deuda en la app y se cobra como una cuota.</p>'); abrir('descuentos', { tipo: 'Multa' }); });

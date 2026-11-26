@@ -270,7 +270,7 @@ $('bPagar').addEventListener('click', function () {
   confirmar('¿Registrar ' + $('fTotal').textContent.replace('·', '—') + ' de <b>' + esc(nombre) + '</b> en ' + esc($('fMedio').value) + '?', 'Registrar', function () {
     ocupado($('bPagar'), true, 'Registrando…');
     api('adminRegistrarPago', token, { nro: nro, ids: ids, adelantos: adel, medio: $('fMedio').value, fecha: $('fFecha').value, obs: $('fObs').value })
-      .then(function (r) { toast('Pago registrado: ' + r.cantidad + (r.cantidad === 1 ? ' cuota' : ' cuotas') + ' por ' + r.total); socios = []; abrirFicha(nro, vistaAnterior); })
+      .then(function (r) { toast('Pago registrado: ' + r.cantidad + (r.cantidad === 1 ? ' cuota' : ' cuotas') + ' por ' + r.total + (r.reciboTxt ? ' · comprobante Nº ' + r.reciboTxt + (r.envio && r.envio.mail ? ' (enviado por mail)' : '') : '')); socios = []; abrirFicha(nro, vistaAnterior); })
       .catch(function (e) { $('ePago').textContent = msg(e); })
       .then(function () { ocupado($('bPagar'), false); totalPago(); });
   }, 'verde');

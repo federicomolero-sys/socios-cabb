@@ -132,7 +132,8 @@ function pintar(d) {
       else { est = '<span class="est-Pendiente">Pendiente</span>'; det = 'Vence el ' + c.vence; }
       if (c.recargo) det += ' · incluye recargo de ' + c.recargo;
       if (c.condonado) det += ' · bonificados ' + c.condonado;
-      return '<div class="cuota"><div><div>' + esc(c.legible) + '</div><div class="det">' + esc(det) + '</div></div>' +
+      return '<div class="cuota"><div><div>' + esc(c.legible) + '</div><div class="det">' + esc(det) +
+             (c.recibo ? ' · <a href="#" data-recibo="' + esc(c.recibo) + '">🧾 comprobante</a>' : '') + '</div></div>' +
              '<div class="monto">' + esc(c.monto) + '<br>' + est + '</div></div>';
     }).join('');
   }
