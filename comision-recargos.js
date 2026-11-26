@@ -22,7 +22,7 @@
   /* ================= Más: configuración ================= */
   var card = document.createElement('div');
   card.className = 'card'; card.id = 'rcCard';
-  card.innerHTML = '<details id="rcDet"><summary style="font-weight:600;cursor:pointer">⏰ Vencimiento y recargos</summary><div id="rcCuerpo" style="margin-top:10px"><div class="muted">Cargando…</div></div></details>';
+  card.innerHTML = '<details id="rcDet"><summary style="font-weight:600;cursor:pointer">⏰ Vencimiento, recargos y altas</summary><div id="rcCuerpo" style="margin-top:10px"><div class="muted">Cargando…</div></div></details>';
   var mas = document.getElementById('vMas');
   var ref = document.getElementById('ctCard') || document.getElementById('dcCard');
   if (mas) { if (ref && ref.parentNode === mas) mas.insertBefore(card, ref); else mas.appendChild(card); }
@@ -34,8 +34,10 @@
     card.querySelectorAll('.rc-tr').forEach(function (f) {
       tramos.push({ desde: Number(f.querySelector('.rcDesde').value) || 0, valor: Number(String(f.querySelector('.rcValor').value).replace(',', '.')) || 0, tipo: f.querySelector('.rcTipo').value });
     });
-    return { activo: document.getElementById('rcActivo').checked, dia: Number(document.getElementById('rcDia').value) || 0,
-             desde: document.getElementById('rcDesde').value, tramos: tramos };
+    var v = function (id) { return document.getElementById(id); };
+    return { activo: v('rcActivo').checked, dia: Number(v('rcDia').value) || 0, desde: v('rcDesde').value, tramos: tramos,
+             mensual: { activo: v('rcMActivo').checked, valor: Number(String(v('rcMValor').value).replace(',', '.')) || 0, tipo: v('rcMTipo').value },
+             alta: { activo: v('rcAActivo').checked, diaMedia: Number(v('rcADia').value) || 0, pct: Number(v('rcAPct').value) || 0, diaSiguiente: Number(v('rcASig').value) || 0 } };
   }
 
   function filaTramo(t) {
@@ -47,6 +49,7 @@
 
   function pintar() {
     var tramos = R.tramos.length ? R.tramos : [{ desde: 11, tipo: '%', valor: 10 }, { desde: 21, tipo: '%', valor: 15 }];
+    var M = R.mensual || { activo: false, tipo: '%', valor: 5 }, A = R.alta || { activo: false, diaMedia: 15, pct: 50, diaSiguiente: 29 };
     document.getElementById('rcCuerpo').innerHTML =
       '<div class="muted">La cuota vale lo normal hasta el día de vencimiento. Después, cada tramo le suma un recargo, que se actualiza solo en la planilla y en la app del socio. Las cuotas de meses anteriores llevan el recargo del último tramo.</div>' +
       '<label class="rc-sw" style="margin-top:12px"><input type="checkbox" id="rcActivo"' + (R.activo ? ' checked' : '') + '> <b>Cobrar recargos</b></label>' +
@@ -55,7 +58,18 @@
       '<div class="muted" style="margin-top:4px">Las cuotas de meses anteriores a "Aplicar desde" no llevan recargo (así no se le suma a deudas viejas, salvo que lo elijas).</div>' +
       '<h3 style="margin:14px 0 0">Tramos</h3><div id="rcTramos">' + tramos.map(filaTramo).join('') + '</div>' +
       '<button class="btn sec" id="rcMas" type="button" style="margin-top:10px">+ Agregar tramo</button>' +
+      '<label class="rc-sw" style="margin-top:14px"><input type="checkbox" id="rcMActivo"' + (M.activo ? ' checked' : '') + '> <b>Sumar recargo por cada mes de atraso</b></label>' +
+      '<div class="muted">Para deudas de varios meses: además del último tramo, suma esto por cada mes adicional que pasa sin pagar.</div>' +
+      '<div class="fila2" style="margin-top:6px"><div><label>Recargo por mes</label><input id="rcMValor" type="number" min="0" step="any" value="' + (M.valor || 5) + '"></div>' +
+      '<div><label>Tipo</label><select id="rcMTipo"><option value="%"' + (M.tipo !== '$' ? ' selected' : '') + '>%</option><option value="$"' + (M.tipo === '$' ? ' selected' : '') + '>$ fijo</option></select></div></div>' +
       '<div class="rc-prev" id="rcPrev"></div>' +
+      '<h3 style="margin:18px 0 0">🆕 Cuota del mes de alta</h3>' +
+      '<div class="muted">Al dar de alta a alguien se genera sola la cuota de ese mes, según el día en que se asocia. Si se asocia pasado el vencimiento, tiene 10 días para pagarla y ese mes no lleva recargo.</div>' +
+      '<label class="rc-sw" style="margin-top:8px"><input type="checkbox" id="rcAActivo"' + (A.activo ? ' checked' : '') + '> <b>Usar esta regla</b></label>' +
+      '<div class="fila2"><div><label>Desde el día</label><input id="rcADia" type="number" min="2" max="31" value="' + (A.diaMedia || '') + '"></div>' +
+      '<div><label>Paga este % de la cuota</label><input id="rcAPct" type="number" min="1" max="99" value="' + (A.pct || '') + '"></div></div>' +
+      '<label>Desde el día (empieza a pagar el mes siguiente)</label><input id="rcASig" type="number" min="2" max="31" value="' + (A.diaSiguiente || '') + '">' +
+      '<div class="rc-prev" id="rcAPrev"></div>' +
       '<button class="btn" id="rcGuardar" type="button" style="margin-top:12px">Guardar</button><div class="error" id="rcErr"></div>';
     previa();
   }
@@ -71,9 +85,22 @@
       var sig = tr[i + 1];
       h += '<br>' + (sig ? 'Del ' + t.desde + ' al ' + (sig.desde - 1) : 'Desde el ' + t.desde) + ': <b>' + pesos(con(t)) + '</b> <span class="muted">(+' + txtT(t) + ')</span>';
     });
-    if (tr.length) h += '<br>Meses anteriores: <b>' + pesos(con(tr[tr.length - 1])) + '</b>';
+    if (tr.length) {
+      var ult = con(tr[tr.length - 1]);
+      var porMes = d.mensual.activo && d.mensual.valor > 0 ? (d.mensual.tipo === '$' ? Math.round(d.mensual.valor) : Math.round(base * d.mensual.valor / 100)) : 0;
+      h += '<br>' + (porMes ? 'Cuotas de meses anteriores (1 mes de atraso)' : 'Meses anteriores') + ': <b>' + pesos(ult) + '</b>';
+      if (porMes) h += '<br>2 meses de atraso: <b>' + pesos(ult + porMes) + '</b> · 3 meses: <b>' + pesos(ult + 2 * porMes) + '</b> <span class="muted">(+' + txtT(d.mensual) + ' por mes)</span>';
+    }
     if (!d.activo) h += '<br><span class="muted">Los recargos están apagados: hoy no se cobra ninguno.</span>';
     p.innerHTML = h;
+    var pa = document.getElementById('rcAPrev'), a = d.alta;
+    if (pa) {
+      var t = [], ini = 1;
+      if (a.diaMedia) { t.push('Se asocia del ' + ini + ' al ' + (a.diaMedia - 1) + ': cuota completa (' + pesos(base) + ')'); ini = a.diaMedia; }
+      if (a.diaMedia && a.pct) t.push('Del ' + a.diaMedia + (a.diaSiguiente ? ' al ' + (a.diaSiguiente - 1) : ' a fin de mes') + ': ' + a.pct + ' % (' + pesos(Math.round(base * a.pct / 100)) + ')');
+      if (a.diaSiguiente) t.push((a.diaMedia ? 'Desde el ' : 'Del 1 al ' + (a.diaSiguiente - 1) + ': cuota completa · desde el ') + a.diaSiguiente + ': no paga ese mes, arranca el siguiente');
+      pa.innerHTML = '<b>Ejemplo:</b><br>' + t.join('<br>') + (a.activo ? '' : '<br><span class="muted">Apagada: al dar de alta no se genera ninguna cuota (como hasta ahora).</span>');
+    }
   }
 
   function cargar() {
