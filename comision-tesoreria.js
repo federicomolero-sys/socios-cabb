@@ -207,7 +207,7 @@
 
   /* ================= Caja ================= */
   var cCaja = tarjeta('tsCaja', '💰 Caja de tesorería');
-  var CJ = null, tipoMov = 'Egreso', catAbierto = false;
+  var CJ = null, tipoMov = 'Egreso', catAbierto = false, editMov = null;
   function guardarCats(tipo, lista) {
     return api('adminCajaCategorias', token, tipo, lista).then(function (cats) { CJ.categorias = cats; catAbierto = true; pintarCaja(); })
       .catch(function (x) { toast(msg(x)); });
@@ -219,21 +219,23 @@
       '<div class="ts-res"><div><small>Ingresos</small><b class="ts-pos">' + pesos(r.ingresos) + '</b></div><div><small>Egresos</small><b class="ts-neg">' + pesos(r.egresos) + '</b></div>' +
       '<div><small>Saldo del mes</small><b class="' + (r.saldo < 0 ? 'ts-neg' : 'ts-pos') + '">' + pesos(r.saldo) + '</b></div></div>' +
       '<div class="ts-it"><div>Cuotas cobradas<div class="s">registradas en el sistema</div></div><div class="m">' + pesos(a.cuotas) + '</div></div>' +
+      (a.ingreso ? '<div class="ts-it"><div>Cuotas de ingreso<div class="s">socios nuevos</div></div><div class="m">' + pesos(a.ingreso) + '</div></div>' : '') +
       (a.multas ? '<div class="ts-it"><div>Multas cobradas</div><div class="m">' + pesos(a.multas) + '</div></div>' : '') +
       (a.eventos ? '<div class="ts-it"><div>Inscripciones a eventos</div><div class="m">' + pesos(a.eventos) + '</div></div>' : '') +
       (a.clases ? '<div class="ts-it"><div>Clases</div><div class="m">' + pesos(a.clases) + '</div></div>' : '') +
       r.porCategoria.map(function (x) { return '<div class="ts-it"><div>' + e(x.categoria) + '<div class="s">' + (x.tipo === 'Ingreso' ? 'otros ingresos' : 'gasto') + '</div></div><div class="m ' + (x.tipo === 'Egreso' ? 'ts-neg' : '') + '">' + (x.tipo === 'Egreso' ? '− ' : '') + pesos(x.monto) + '</div></div>'; }).join('') +
-      '<h3 style="margin:14px 0 4px">Cargar un movimiento</h3>' +
+      '<h3 id="tsCTit" style="margin:14px 0 4px">' + (editMov ? '✏️ Editar movimiento' : 'Cargar un movimiento') + '</h3>' +
       '<div class="ts-tabs"><button type="button" class="btn ' + (tipoMov === 'Egreso' ? '' : 'sec') + '" data-tm="Egreso">Gasto</button><button type="button" class="btn ' + (tipoMov === 'Ingreso' ? '' : 'sec') + '" data-tm="Ingreso">Otro ingreso</button></div>' +
-      '<div class="ts-grid2"><div><label>Fecha</label><input id="tsCFecha" type="date" value="' + hoyIso() + '"></div><div><label>Monto</label><input id="tsCMonto" type="number" min="0" step="any"></div></div>' +
-      '<div class="ts-grid2"><div><label>Categoría</label><input id="tsCCat" list="tsCCats" placeholder="Elegí o escribí"><datalist id="tsCCats">' + opts + '</datalist></div>' +
-      '<div><label>Medio</label><select id="tsCMedio"><option></option>' + r.medios.map(function (m) { return '<option>' + e(m) + '</option>'; }).join('') + '</select></div></div>' +
-      '<label>Concepto</label><input id="tsCConc" maxlength="120" placeholder="' + (tipoMov === 'Egreso' ? 'Ej.: Alquiler de noviembre' : 'Ej.: Donación de un socio') + '">' +
-      '<button class="btn" id="tsCGuardar" type="button" style="margin-top:8px">Guardar</button><div class="error" id="tsCErr"></div>' +
+      '<div class="ts-grid2"><div><label>Fecha</label><input id="tsCFecha" type="date" value="' + (editMov ? e(editMov.orden) : hoyIso()) + '"></div><div><label>Monto</label><input id="tsCMonto" type="number" min="0" step="any" value="' + (editMov ? e(editMov.monto) : '') + '"></div></div>' +
+      '<div class="ts-grid2"><div><label>Categoría</label><input id="tsCCat" list="tsCCats" placeholder="Elegí o escribí" value="' + (editMov ? e(editMov.categoria) : '') + '"><datalist id="tsCCats">' + opts + '</datalist></div>' +
+      '<div><label>Medio</label><select id="tsCMedio"><option></option>' + r.medios.map(function (m) { return '<option' + (editMov && editMov.medio === m ? ' selected' : '') + '>' + e(m) + '</option>'; }).join('') + '</select></div></div>' +
+      '<label>Concepto</label><input id="tsCConc" maxlength="120" value="' + (editMov ? e(editMov.concepto) : '') + '" placeholder="' + (tipoMov === 'Egreso' ? 'Ej.: Alquiler de noviembre' : 'Ej.: Donación de un socio') + '">' +
+      '<div style="display:flex;gap:8px;margin-top:8px"><button class="btn" id="tsCGuardar" type="button" style="margin:0">' + (editMov ? 'Guardar cambios' : 'Guardar') + '</button>' +
+      (editMov ? '<button class="btn sec" id="tsCCancel" type="button" style="margin:0;width:auto">Cancelar</button>' : '') + '</div><div class="error" id="tsCErr"></div>' +
       '<h3 style="margin:14px 0 4px">Movimientos de ' + e(r.legible) + '</h3>' +
       (r.movimientos.length ? r.movimientos.map(function (x) {
         return '<div class="ts-it"><div><b>' + e(x.concepto) + '</b><div class="s">' + e(x.fecha) + (x.categoria ? ' · ' + e(x.categoria) : '') + (x.medio ? ' · ' + e(x.medio) : '') + ' · ' + e(x.usuario) +
-          ' · <button class="mini" data-cborrar="' + e(x.id) + '">borrar</button></div></div><div class="m ' + (x.tipo === 'Egreso' ? 'ts-neg' : 'ts-pos') + '">' + (x.tipo === 'Egreso' ? '− ' : '+ ') + pesos(x.monto) + '</div></div>';
+          ' · <button class="mini" data-ceditar="' + e(x.id) + '">editar</button> <button class="mini" data-cborrar="' + e(x.id) + '">borrar</button></div></div><div class="m ' + (x.tipo === 'Egreso' ? 'ts-neg' : 'ts-pos') + '">' + (x.tipo === 'Egreso' ? '− ' : '+ ') + pesos(x.monto) + '</div></div>';
       }).join('') : '<div class="muted">Todavía no hay gastos ni otros ingresos cargados este mes.</div>') +
       '<details id="tsCCatDet" style="margin-top:14px"' + (catAbierto ? ' open' : '') + '><summary style="cursor:pointer;font-weight:600">🏷️ Categorías de gastos e ingresos</summary>' +
       '<div class="muted" style="margin-top:6px">Las que aparecen para elegir al cargar un movimiento. Si escribís una nueva al cargar, también queda guardada. Borrar una no cambia los movimientos ya cargados.</div>' +
@@ -247,7 +249,7 @@
       r.meses.slice().reverse().map(function (m) { return '<tr><td>' + e(m.legible) + '</td><td>' + pesos(m.ingresos) + '</td><td>' + pesos(m.egresos) + '</td><td class="' + (m.saldo < 0 ? 'ts-neg' : '') + '">' + pesos(m.saldo) + '</td></tr>'; }).join('') + '</table>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sec" id="tsCImp" type="button">🖨️ Imprimir balance del mes</button><button class="btn sec" id="tsCCsv" type="button">⬇️ Descargar planilla (CSV)</button></div>');
   }
-  function cargarCaja(p) { return api('adminCaja', token, p || '').then(function (r) { CJ = r; pintarCaja(); }).catch(falla(cCaja)); }
+  function cargarCaja(p) { return api('adminCaja', token, p || '').then(function (r) { CJ = r; editMov = null; pintarCaja(); }).catch(falla(cCaja)); }
   alAbrir(cCaja, function () { cargarCaja(CJ ? CJ.periodo : ''); });
   cCaja.addEventListener('change', function (ev) { if (ev.target.id === 'tsCMes' && ev.target.value) cargarCaja(ev.target.value); });
   cCaja.addEventListener('click', function (ev) {
@@ -268,10 +270,19 @@
       la.push(v); guardarCats(t.dataset.cqadd, la).then(function () { toast('Categoría agregada'); });
       return;
     }
+    if (t.dataset && t.dataset.ceditar) {
+      editMov = CJ.movimientos.filter(function (x) { return String(x.id) === t.dataset.ceditar; })[0] || null;
+      if (!editMov) return;
+      tipoMov = editMov.tipo === 'Ingreso' ? 'Ingreso' : 'Egreso'; catAbierto = !!($id('tsCCatDet') && $id('tsCCatDet').open); pintarCaja();
+      var tt = $id('tsCTit'); if (tt) tt.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    if (t.id === 'tsCCancel') { editMov = null; pintarCaja(); return; }
     if (t.id === 'tsCGuardar') {
       $id('tsCErr').textContent = ''; ocupado(t, true, 'Guardando…');
-      api('adminCajaGuardar', token, { tipo: tipoMov, fecha: $id('tsCFecha').value, monto: $id('tsCMonto').value, categoria: $id('tsCCat').value, medio: $id('tsCMedio').value, concepto: $id('tsCConc').value })
-        .then(function () { toast('Movimiento guardado'); return cargarCaja(CJ.periodo); })
+      var datosMov = { tipo: tipoMov, fecha: $id('tsCFecha').value, monto: $id('tsCMonto').value, categoria: $id('tsCCat').value, medio: $id('tsCMedio').value, concepto: $id('tsCConc').value };
+      (editMov ? api('adminCajaEditar', token, editMov.id, datosMov) : api('adminCajaGuardar', token, datosMov))
+        .then(function () { toast(editMov ? 'Movimiento actualizado' : 'Movimiento guardado'); return cargarCaja(CJ.periodo); })
         .catch(function (x) { $id('tsCErr').textContent = msg(x); ocupado(t, false); });
     } else if (t.dataset && t.dataset.cborrar) {
       confirmar('¿Borrar este movimiento de la caja?', 'Borrar', function () {
@@ -280,7 +291,7 @@
     } else if (t.id === 'tsCImp') {
       var r = CJ, a = r.auto;
       var fila = function (k, v, neg) { return '<tr><td>' + e(k) + '</td><td class="n">' + (neg ? '− ' : '') + pesos(v) + '</td></tr>'; };
-      var ing = fila('Cuotas cobradas', a.cuotas) + (a.multas ? fila('Multas', a.multas) : '') + (a.eventos ? fila('Eventos', a.eventos) : '') + (a.clases ? fila('Clases', a.clases) : '') +
+      var ing = fila('Cuotas cobradas', a.cuotas) + (a.ingreso ? fila('Cuotas de ingreso', a.ingreso) : '') + (a.multas ? fila('Multas', a.multas) : '') + (a.eventos ? fila('Eventos', a.eventos) : '') + (a.clases ? fila('Clases', a.clases) : '') +
         r.porCategoria.filter(function (x) { return x.tipo === 'Ingreso'; }).map(function (x) { return fila(x.categoria, x.monto); }).join('');
       var egr = r.porCategoria.filter(function (x) { return x.tipo === 'Egreso'; }).map(function (x) { return fila(x.categoria, x.monto, true); }).join('');
       var det = r.movimientos.map(function (x) { return '<tr><td>' + e(x.fecha) + '</td><td>' + e(x.concepto) + '</td><td>' + e(x.categoria) + '</td><td>' + e(x.medio) + '</td><td class="n">' + (x.tipo === 'Egreso' ? '− ' : '') + pesos(x.monto) + '</td></tr>'; }).join('');
@@ -294,6 +305,7 @@
       var q = function (v) { return '"' + String(v === null || v === undefined ? '' : v).replace(/"/g, '""') + '"'; };
       var l = [['Fecha', 'Tipo', 'Categoría', 'Concepto', 'Medio', 'Monto', 'Cargado por'].map(q).join(';')];
       l.push([q(CJ.legible), q('Ingreso'), q('Cuotas (sistema)'), q('Cuotas cobradas'), q(''), q(CJ.auto.cuotas), q('')].join(';'));
+      if (CJ.auto.ingreso) l.push([q(CJ.legible), q('Ingreso'), q('Cuotas de ingreso (sistema)'), q('Cuotas de ingreso'), q(''), q(CJ.auto.ingreso), q('')].join(';'));
       if (CJ.auto.multas) l.push([q(CJ.legible), q('Ingreso'), q('Multas (sistema)'), q('Multas cobradas'), q(''), q(CJ.auto.multas), q('')].join(';'));
       if (CJ.auto.eventos) l.push([q(CJ.legible), q('Ingreso'), q('Eventos (sistema)'), q('Inscripciones'), q(''), q(CJ.auto.eventos), q('')].join(';'));
       if (CJ.auto.clases) l.push([q(CJ.legible), q('Ingreso'), q('Clases (sistema)'), q('Clases cobradas'), q(''), q(CJ.auto.clases), q('')].join(';'));
